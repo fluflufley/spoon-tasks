@@ -11,4 +11,4 @@ window.FIREBASE_CONFIG = {
 };
 
 // Web Push key for reminders (see SETUP.md, "Reminders"). Replace the placeholder with your key pair.
-window.FCM_VAPID_KEY = "PASTE_YOUR_VAPID_KEY";
+window.FCM_VAPID_KEY = "BBOxWADl0FWpB6SDAh8ATEvYDkxA88CUYBvLy0RVnt6xNeNQnZtvBBYTZCcf76RvsSgEt5HX4Iu6HIovCDfeGoo";
