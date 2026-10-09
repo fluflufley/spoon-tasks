@@ -73,7 +73,7 @@ td.empty{flex:1 0 100%}
 #filters select,#filters input[type=date]{width:100%}
 td[data-l]::before{font-size:10px;margin-bottom:1px}
 }
-table.h-cat .c-cat,table.h-pri .c-pri,table.h-sp .c-sp,table.h-st .c-st,table.h-due .c-due{display:none}
+table.h-cat .c-cat,table.h-term .c-term,table.h-pri .c-pri,table.h-sp .c-sp,table.h-st .c-st,table.h-due .c-due{display:none}
 .bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
 dialog{border:1px solid var(--bd);border-radius:14px;background:var(--card);color:var(--tx);padding:0;width:min(560px,calc(100% - 24px));max-height:88vh}
 dialog::backdrop{background:rgba(0,0,0,.45)}
@@ -101,7 +101,7 @@ table.show-ex .ex{display:block}
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v12</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v14</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -115,10 +115,11 @@ table.show-ex .ex{display:block}
 <div class="card row" id="filters">
 <label>Category<select id="fc"></select></label>
 <div><div style="font-size:12px;color:var(--mu);margin-bottom:3px">Status (none selected = all)</div><div class="chips" id="fs"></div></div>
+<label>Term<select id="ft"><option value="">All</option><option value="short">Short term</option><option value="long">Long term</option></select></label>
 <label>Date<select id="fd"><option value="">All dates</option><option value="overdue">Overdue</option><option value="today">Today</option><option value="tomorrow">Tomorrow</option><option value="week">Next 7 days</option><option value="none">No date</option><option value="date">Specific date…</option></select></label>
 <input type="date" id="fdv" hidden style="align-self:end">
 <label>Sort by<select id="sb">
-<option value="">Added order</option><option value="priority">Priority</option><option value="spoons">Spoons</option><option value="status">Status</option><option value="due">Date</option></select></label>
+<option value="">Added order</option><option value="priority" selected>Priority</option><option value="spoons">Spoons</option><option value="status">Status</option><option value="due">Date</option><option value="term">Term</option></select></label>
 <label>Direction<select id="sd"><option value="-1">High → low</option><option value="1">Low → high</option></select></label>
 <button id="reset">Reset filters</button>
 </div>
@@ -126,7 +127,7 @@ table.show-ex .ex{display:block}
 <div class="card">
 <div class="tw"><table id="tbl">
 <thead><tr>
-<th>Task</th><th class="c-cat">Category</th>
+<th>Task</th><th class="c-cat">Category</th><th class="s c-term" data-k="term">Term ↕</th>
 <th class="s c-pri" data-k="priority">Priority ↕</th>
 <th class="s c-sp" data-k="spoons">Spoons ↕</th>
 <th class="s c-st" data-k="status">Status ↕</th><th class="s c-due" data-k="due">Date ↕</th><th></th></tr></thead>
@@ -142,6 +143,7 @@ table.show-ex .ex{display:block}
 <form id="f" class="fcol" onsubmit="return false">
 <label>Task<input id="name" placeholder="What needs doing?"></label>
 <label>Category<input id="cat" list="cats" placeholder="e.g. Home"></label>
+<label>Term<select id="tm"><option value="short">Short term</option><option value="long">Long term</option></select></label>
 <label>Priority<select id="pri"></select></label>
 <label>Spoons<select id="sp"></select></label>
 <label>Status<select id="st"></select></label>
@@ -151,7 +153,7 @@ table.show-ex .ex{display:block}
 
 <dialog id="dImp"><div class="dc">
 <div class="dh"><b>Import tasks</b><button type="button" class="x" data-close title="Close">×</button></div>
-<p class="sub" style="margin:0 0 8px;font-size:13px">Use a CSV file (in Excel or Google Sheets: save/download as CSV), or copy the cells from your spreadsheet and paste them below. Put headers in the first row: Task, Category, Priority, Spoons, Status, Date. Only Task is required. Priority and spoons run 0–7, and dates work best as YYYY-MM-DD. Imported tasks are added to your existing ones.</p>
+<p class="sub" style="margin:0 0 8px;font-size:13px">Use a CSV file (in Excel or Google Sheets: save/download as CSV), or copy the cells from your spreadsheet and paste them below. Put headers in the first row: Task, Category, Term, Priority, Spoons, Status, Date. Only Task is required. Priority and spoons run 0–7, and dates work best as YYYY-MM-DD. Imported tasks are added to your existing ones.</p>
 <div class="fcol">
 <label>CSV file<input type="file" id="impf" accept=".csv,.tsv,.txt,text/csv"></label>
 <label>…or paste here<textarea id="impt" rows="6" style="font:inherit;font-size:16px;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:7px 9px;width:100%"></textarea></label>
@@ -257,13 +259,13 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",
 
 function add(keep){
   const name=$("name").value.trim();if(!name){$("name").focus();return}
-  tasks.push({id:nextId++,name,category:$("cat").value.trim()||"General",priority:+$("pri").value,spoons:+$("sp").value,status:$("st").value,due:$("dt").value||""});
+  tasks.push({id:nextId++,name,category:$("cat").value.trim()||"General",priority:+$("pri").value,spoons:+$("sp").value,status:$("st").value,due:$("dt").value||"",term:$("tm").value});
   $("name").value="";$("dt").value="";save();render();if(keep)$("name").focus();else $("dAdd").close();
 }
 $("add").onclick=()=>add(false);$("add2").onclick=()=>add(true);
 $("name").onkeydown=e=>{if(e.key==="Enter")add(false)};
-["fc","fs","sb","sd","fd","fdv"].forEach(i=>$(i).onchange=render);
-$("reset").onclick=()=>{$("fc").value="";$("fs").querySelectorAll("input").forEach(i=>i.checked=false);$("sb").value="";$("fd").value="";$("fdv").value="";render()};
+["fc","fs","sb","sd","fd","fdv","ft"].forEach(i=>$(i).onchange=render);
+$("reset").onclick=()=>{$("fc").value="";$("fs").querySelectorAll("input").forEach(i=>i.checked=false);$("sb").value="priority";$("sd").value="-1";$("fd").value="";$("fdv").value="";$("ft").value="";render()};
 document.querySelectorAll("th.s").forEach(th=>th.onclick=()=>{
   const k=th.dataset.k;
   if($("sb").value===k)$("sd").value=$("sd").value==="-1"?"1":"-1";else{$("sb").value=k;$("sd").value="-1"}
@@ -306,21 +308,22 @@ function render(skip){
   $("cats").innerHTML=cats.map(c=>`<option value="${esc(c)}">`).join("");
 
   const fc=$("fc").value,fs=[...$("fs").querySelectorAll("input:checked")].map(i=>i.value),sb=$("sb").value,dir=+$("sd").value;
-  const fd=$("fd").value,today=inDays(0);
+  const fd=$("fd").value,ft=$("ft").value,today=inDays(0);
   $("fdv").hidden=fd!=="date";
   const dateOk=t=>!fd||(fd==="overdue"?!!t.due&&t.due<today&&t.status!=="Done":fd==="today"?t.due===today:fd==="tomorrow"?t.due===inDays(1):fd==="week"?!!t.due&&t.due>=today&&t.due<=inDays(7):fd==="none"?!t.due:fd==="date"?(!$("fdv").value||t.due===$("fdv").value):true);
-  let list=tasks.filter(t=>(!fc||t.category===fc)&&(!fs.length||fs.includes(t.status))&&dateOk(t));
-  const DL={priority:["0 → 7","7 → 0"],spoons:["0 → 7","7 → 0"],status:["To do first","Done first"],due:["Soonest first","Latest first"]}[sb]||["Default","Reversed"];
+  let list=tasks.filter(t=>(!fc||t.category===fc)&&(!fs.length||fs.includes(t.status))&&dateOk(t)&&(!ft||(t.term||"short")===ft));
+  const DL={priority:["0 → 7","7 → 0"],spoons:["0 → 7","7 → 0"],status:["To do first","Done first"],due:["Soonest first","Latest first"],term:["Short first","Long first"]}[sb]||["Default","Reversed"];
   $("sd").options[0].text=DL[0];$("sd").options[1].text=DL[1];$("sd").disabled=!sb;
   if(sb==="due"){list=[...list].sort((a,b)=>{if(!a.due!==!b.due)return a.due?-1:1;return ((a.due||"").localeCompare(b.due||"")||a.id-b.id)*(-dir)})}
   else if(sb){
-    const si=t=>STATUSES.indexOf(t.status);
-    const ch={priority:[t=>t.priority,t=>t.spoons,si],spoons:[t=>t.spoons,t=>t.priority,si],status:[si,t=>t.priority,t=>t.spoons]}[sb];
+    const si=t=>STATUSES.indexOf(t.status),ti=t=>(t.term||"short")==="long"?1:0;
+    const ch={priority:[t=>t.priority,t=>t.spoons,si],spoons:[t=>t.spoons,t=>t.priority,si],status:[si,t=>t.priority,t=>t.spoons],term:[ti,t=>t.priority,t=>t.spoons,si]}[sb];
     list=[...list].sort((a,b)=>{for(const f of ch){const x=f(a)-f(b);if(x)return x*(-dir)}return a.id-b.id});
   }
   $("tb").innerHTML=list.length?list.map(t=>`<tr class="${t.status==="Done"?"done":""}" data-id="${t.id}">
     <td class="n">${esc(t.name)}</td>
     <td class="c-cat" data-l="Category"><input class="pill catin" data-f="category" list="cats" value="${esc(t.category)}" size="${Math.max(6,t.category.length+1)}" style="--h:${catHue(t.category)}"></td>
+    <td class="c-term" data-l="Term"><select data-f="term" class="c" style="--h:${(t.term||"short")==="long"?335:175}"><option value="short"${(t.term||"short")==="short"?" selected":""}>Short</option><option value="long"${t.term==="long"?" selected":""}>Long</option></select></td>
     <td class="c-pri" data-l="Priority"><select data-f="priority" class="c pri${t.priority===0?" dk":""}" title="${esc(PRI[t.priority])}" style="--h:${PH[t.priority]};--d:${Math.max(0,38-10*t.priority)};--s:${PS[t.priority]}%">${opts(nums,t.priority)}</select><div class="ex">${esc(PRI[t.priority])}</div></td>
     <td class="c-sp" data-l="Spoons"><select data-f="spoons" class="c sp${t.spoons>=4?" hi":""}" title="${esc(SP[t.spoons])}" style="--t:${t.spoons/7}">${opts(nums,t.spoons)}</select><div class="ex">${esc(SP[t.spoons])}</div></td>
     <td class="c-st" data-l="Status"><select data-f="status" class="c" style="--h:${STH[t.status]}">${opts(STATUSES,t.status)}</select></td>
@@ -333,7 +336,7 @@ function render(skip){
 $("tb").onchange=e=>{
   const tr=e.target.closest("tr"),f=e.target.dataset.f;if(!tr||!f)return;
   const t=tasks.find(x=>x.id==tr.dataset.id);
-  t[f]=f==="category"?(e.target.value.trim()||"General"):(f==="status"||f==="due")?e.target.value:+e.target.value;save();render();
+  t[f]=f==="category"?(e.target.value.trim()||"General"):(f==="status"||f==="due"||f==="term")?e.target.value:+e.target.value;save();render();
 };
 $("tb").onclick=e=>{
   if(!e.target.hasAttribute("data-del"))return;
@@ -364,7 +367,7 @@ function parseTable(txt){
   return rows;
 }
 function importRows(rows){
-  const key=h=>{h=h.toLowerCase();return /categ/.test(h)?"category":/prior/.test(h)?"priority":/spoon/.test(h)?"spoons":/status|state/.test(h)?"status":/date|due|deadline/.test(h)?"due":/task|name|title|todo/.test(h)?"name":null};
+  const key=h=>{h=h.toLowerCase();return /categ/.test(h)?"category":/prior/.test(h)?"priority":/spoon/.test(h)?"spoons":/status|state/.test(h)?"status":/term|horizon/.test(h)?"term":/date|due|deadline/.test(h)?"due":/task|name|title|todo/.test(h)?"name":null};
   if(!rows.length)return {n:0,skip:0};
   let map=rows[0].map(key),body=rows.slice(1);
   if(!map.includes("name")){map=["name","category","priority","spoons","status","due"];body=rows}
@@ -375,7 +378,7 @@ function importRows(rows){
   body.forEach(r=>{
     const o={};map.forEach((k,i)=>{if(k&&o[k]==null)o[k]=(r[i]||"").trim()});
     if(!o.name){skip++;return}
-    tasks.push({id:nextId++,name:o.name,category:o.category||"General",priority:num(o.priority,4),spoons:num(o.spoons,3),status:stat(o.status),due:date(o.due)});n++;
+    tasks.push({id:nextId++,name:o.name,category:o.category||"General",priority:num(o.priority,4),spoons:num(o.spoons,3),status:stat(o.status),due:date(o.due),term:/long/i.test(o.term||"")?"long":"short"});n++;
   });
   return {n,skip};
 }
@@ -387,7 +390,7 @@ $("impgo").onclick=()=>{
   if(r.n){save();render();$("impt").value="";$("impf").value=""}
   $("impmsg").textContent=r.n?`Imported ${r.n} task${r.n===1?"":"s"}${r.skip?` (${r.skip} skipped: no task name)`:""}.`:"Nothing imported — check that the first row has headers like Task, Category, Priority.";
 };
-const COLS=[["cat","Category"],["pri","Priority"],["sp","Spoons"],["st","Status"],["due","Date"]];
+const COLS=[["cat","Category"],["term","Term"],["pri","Priority"],["sp","Spoons"],["st","Status"],["due","Date"]];
 let hidCols=[];try{hidCols=JSON.parse(localStorage.getItem("spoon-cols-v1")||"[]")}catch(e){}
 $("cols").innerHTML=COLS.map(([k,n])=>`<label style="--h:150"><input type="checkbox" value="${k}">${n}</label>`).join("");
 function applyCols(){
