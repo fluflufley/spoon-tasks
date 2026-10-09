@@ -71,6 +71,12 @@ td.empty{flex:1 0 100%}
 #filters>div,#filters>#reset{grid-column:1/-1}
 #filters>div{order:-1}
 #filters select,#filters input[type=date]{width:100%}
+tbody tr{gap:6px 5px}
+td select.c{-webkit-appearance:none;appearance:none;background-image:none;padding:4px 9px;text-align:center;text-align-last:center;width:auto}
+td select.c[data-f=priority],td select.c[data-f=spoons]{width:2.3em;padding:4px 0}
+td.c-st select.c{padding:4px 8px}
+td input.catin{max-width:9em;padding:2px 7px}
+td.c-term select.c,td.c-st select.c{padding:4px 5px}
 td[data-l]::before{font-size:10px;margin-bottom:1px}
 }
 table.h-cat .c-cat,table.h-term .c-term,table.h-pri .c-pri,table.h-sp .c-sp,table.h-st .c-st,table.h-due .c-due{display:none}
@@ -101,7 +107,7 @@ table.show-ex .ex{display:block}
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v14</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v17</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -322,12 +328,12 @@ function render(skip){
   }
   $("tb").innerHTML=list.length?list.map(t=>`<tr class="${t.status==="Done"?"done":""}" data-id="${t.id}">
     <td class="n">${esc(t.name)}</td>
-    <td class="c-cat" data-l="Category"><input class="pill catin" data-f="category" list="cats" value="${esc(t.category)}" size="${Math.max(6,t.category.length+1)}" style="--h:${catHue(t.category)}"></td>
+    <td class="c-cat" data-l="Cat."><input class="pill catin" data-f="category" list="cats" value="${esc(t.category)}" style="--h:${catHue(t.category)};width:${Math.max(6,t.category.length+5)}ch"></td>
     <td class="c-term" data-l="Term"><select data-f="term" class="c" style="--h:${(t.term||"short")==="long"?335:175}"><option value="short"${(t.term||"short")==="short"?" selected":""}>Short</option><option value="long"${t.term==="long"?" selected":""}>Long</option></select></td>
-    <td class="c-pri" data-l="Priority"><select data-f="priority" class="c pri${t.priority===0?" dk":""}" title="${esc(PRI[t.priority])}" style="--h:${PH[t.priority]};--d:${Math.max(0,38-10*t.priority)};--s:${PS[t.priority]}%">${opts(nums,t.priority)}</select><div class="ex">${esc(PRI[t.priority])}</div></td>
+    <td class="c-pri" data-l="Prio."><select data-f="priority" class="c pri${t.priority===0?" dk":""}" title="${esc(PRI[t.priority])}" style="--h:${PH[t.priority]};--d:${Math.max(0,38-10*t.priority)};--s:${PS[t.priority]}%">${opts(nums,t.priority)}</select><div class="ex">${esc(PRI[t.priority])}</div></td>
     <td class="c-sp" data-l="Spoons"><select data-f="spoons" class="c sp${t.spoons>=4?" hi":""}" title="${esc(SP[t.spoons])}" style="--t:${t.spoons/7}">${opts(nums,t.spoons)}</select><div class="ex">${esc(SP[t.spoons])}</div></td>
     <td class="c-st" data-l="Status"><select data-f="status" class="c" style="--h:${STH[t.status]}">${opts(STATUSES,t.status)}</select></td>
-    <td class="c-due" data-l="Due date"><input type="date" data-f="due" class="dt${dcls(t)}" value="${t.due||""}"></td>
+    <td class="c-due" data-l="Due"><input type="date" data-f="due" class="dt${dcls(t)}" value="${t.due||""}"></td>
     <td class="del"><button class="x" data-del title="Delete">×</button></td></tr>`).join("")
     :`<tr><td colspan="7" class="empty">${tasks.length?"No tasks match these filters.":"No tasks yet — add your first one above."}</td></tr>`;
   const open=list.filter(t=>t.status!=="Done");
