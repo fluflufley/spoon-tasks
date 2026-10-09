@@ -107,7 +107,7 @@ table.show-ex .ex{display:block}
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v17</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v18</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -120,7 +120,7 @@ table.show-ex .ex{display:block}
 
 <div class="card row" id="filters">
 <label>Category<select id="fc"></select></label>
-<div><div style="font-size:12px;color:var(--mu);margin-bottom:3px">Status (none selected = all)</div><div class="chips" id="fs"></div></div>
+<div><div style="font-size:12px;color:var(--mu);margin-bottom:3px">Status (none ticked = all)</div><div class="chips" id="fs"></div></div>
 <label>Term<select id="ft"><option value="">All</option><option value="short">Short term</option><option value="long">Long term</option></select></label>
 <label>Date<select id="fd"><option value="">All dates</option><option value="overdue">Overdue</option><option value="today">Today</option><option value="tomorrow">Tomorrow</option><option value="week">Next 7 days</option><option value="none">No date</option><option value="date">Specific date…</option></select></label>
 <input type="date" id="fdv" hidden style="align-self:end">
@@ -271,7 +271,7 @@ function add(keep){
 $("add").onclick=()=>add(false);$("add2").onclick=()=>add(true);
 $("name").onkeydown=e=>{if(e.key==="Enter")add(false)};
 ["fc","fs","sb","sd","fd","fdv","ft"].forEach(i=>$(i).onchange=render);
-$("reset").onclick=()=>{$("fc").value="";$("fs").querySelectorAll("input").forEach(i=>i.checked=false);$("sb").value="priority";$("sd").value="-1";$("fd").value="";$("fdv").value="";$("ft").value="";render()};
+$("reset").onclick=()=>{$("fc").value="";$("fs").querySelectorAll("input").forEach(i=>i.checked=i.value!=="Done");$("sb").value="priority";$("sd").value="-1";$("fd").value="";$("fdv").value="";$("ft").value="";render()};
 document.querySelectorAll("th.s").forEach(th=>th.onclick=()=>{
   const k=th.dataset.k;
   if($("sb").value===k)$("sd").value=$("sd").value==="-1"?"1":"-1";else{$("sb").value=k;$("sd").value="-1"}
@@ -310,7 +310,7 @@ function render(skip){
   const fcv=$("fc").value;
   $("fc").innerHTML=`<option value="">All</option>`+cats.map(c=>`<option${c===fcv?" selected":""}>${esc(c)}</option>`).join("");
   if(fcv&&!cats.includes(fcv))$("fc").value="";
-  if(!$("fs").children.length)$("fs").innerHTML=STATUSES.map(s=>`<label style="--h:${STH[s]}"><input type="checkbox" value="${s}">${s}</label>`).join("");
+  if(!$("fs").children.length)$("fs").innerHTML=STATUSES.map(s=>`<label style="--h:${STH[s]}"><input type="checkbox" value="${s}"${s!=="Done"?" checked":""}>${s}</label>`).join("");
   $("cats").innerHTML=cats.map(c=>`<option value="${esc(c)}">`).join("");
 
   const fc=$("fc").value,fs=[...$("fs").querySelectorAll("input:checked")].map(i=>i.value),sb=$("sb").value,dir=+$("sd").value;
