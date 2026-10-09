@@ -71,5 +71,6 @@ A scheduled job on GitHub checks every 5 minutes (GitHub can start it a few minu
 5. Android → Settings → Apps → Spoon Tasks → Battery → **Unrestricted**, so notifications are not delayed.
 
 ## Notes
+- If the **Actions** tab says workflows are disabled, click **"I understand my workflows, go ahead and enable them"**. Scheduled jobs do not run until Actions is enabled and the `FIREBASE_SERVICE_ACCOUNT` secret exists.
 - GitHub turns off scheduled jobs on a repository with no activity for 60 days. If reminders stop, open the Actions tab and enable the workflow again.
 - A reminder is only sent once per reminder time, and never for tasks marked Done or more than a day late.

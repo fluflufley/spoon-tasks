@@ -80,6 +80,9 @@ td.c-term select.c,td.c-st select.c{padding:4px 5px}
 td[data-l]::before{font-size:10px;margin-bottom:1px}
 }
 table.h-cat .c-cat,table.h-term .c-term,table.h-pri .c-pri,table.h-sp .c-sp,table.h-st .c-st,table.h-due .c-due{display:none}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--tx);color:var(--bg);padding:10px 16px;border-radius:12px;display:flex;gap:16px;align-items:center;z-index:50;box-shadow:0 4px 18px rgba(0,0,0,.3);max-width:calc(100% - 24px);font-size:14px}
+.toast[hidden]{display:none}
+.toast button{background:none;border:none;color:inherit;font-weight:700;text-decoration:underline;padding:0;font-size:14px}
 .rmi{font-size:11px;font-weight:400;color:var(--mu);margin-top:2px}
 .rmi.past{opacity:.6}
 button.bell{font-size:15px;opacity:.45}
@@ -112,7 +115,7 @@ table.show-ex .ex{display:block}
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v19</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v20</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -188,6 +191,8 @@ table.show-ex .ex{display:block}
 <div class="row"><div class="chips" id="cols"></div><button type="button" id="tonly">Tasks only</button></div>
 <h4>Categories &amp; colors</h4>
 <div id="catpanel"></div>
+<h4>Recently deleted</h4>
+<div id="trashList"></div>
 <h4>Reminders</h4>
 <p class="sub" style="margin:0 0 8px;font-size:13px">Get a notification at each task's reminder time. It also shows on your watch while the watch is connected to your phone. Delivery can be a few minutes late.</p>
 <div class="row"><button type="button" id="pushOn">Enable notifications on this device</button><button type="button" id="pushTest">Send a test</button></div>
@@ -198,15 +203,17 @@ table.show-ex .ex{display:block}
 <div class="gw" id="guide"></div>
 </div></dialog>
 
+<div class="toast" id="toast" hidden><span id="toastMsg"></span><button type="button" id="toastUndo">Undo</button></div>
+
 <script src="firebase-config.js"></script>
 <script>
 const STATUSES=["To do","In progress","Waiting","Done"];
 const KEY="spoon-tasks-v1";
-let tasks=[],nextId=1,catHues={};
-try{const r=JSON.parse(localStorage.getItem(KEY)||"null");if(r&&Array.isArray(r.tasks)){tasks=r.tasks;nextId=r.nextId||tasks.length+1;catHues=r.catHues||{}}}catch(e){}
+let tasks=[],nextId=1,catHues={},trash=[];
+try{const r=JSON.parse(localStorage.getItem(KEY)||"null");if(r&&Array.isArray(r.tasks)){tasks=r.tasks;nextId=r.nextId||tasks.length+1;catHues=r.catHues||{};trash=Array.isArray(r.trash)?r.trash:[]}}catch(e){}
 let dbDoc=null,wTimer=null,wBusy=false,wPending=false;
 function setSync(s){const el=document.getElementById("sync");if(el)el.textContent={local:"Saved on this device only",signin:"Not signed in — saved on this device only",saving:"Saving…",saved:"✓ Saved to your account",err:"Couldn't reach your account — saved on this device"}[s]}
-function snap(){return {tasks,nextId,catHues}}
+function snap(){return {tasks,nextId,catHues,trash}}
 function save(){
   try{localStorage.setItem(KEY,JSON.stringify(snap()))}catch(e){}
   if(dbDoc){setSync("saving");clearTimeout(wTimer);wTimer=setTimeout(flush,400)}
@@ -290,7 +297,7 @@ async function initStorage(){
         if(s.metadata.hasPendingWrites)return;
         if(s.exists()){
           const d=s.data();
-          tasks=Array.isArray(d.tasks)?d.tasks:[];nextId=d.nextId||tasks.length+1;catHues=d.catHues||{};
+          tasks=Array.isArray(d.tasks)?d.tasks:[];nextId=d.nextId||tasks.length+1;catHues=d.catHues||{};trash=Array.isArray(d.trash)?d.trash:[];
           try{localStorage.setItem(KEY,JSON.stringify(snap()))}catch(e){}
           dbDoc={set:x=>F.setDoc(ref,x)};setSync("saved");render();
         }else if(first){
@@ -363,6 +370,7 @@ $("catpanel").onchange=e=>{
   render();
 };
 function render(skip){
+  renderTrash();
   const cats=[...new Set(tasks.map(t=>t.category))].sort();
   if(!skip)renderCats(cats);
   const fcv=$("fc").value;
@@ -402,6 +410,28 @@ $("tb").onchange=e=>{
   const t=tasks.find(x=>x.id==tr.dataset.id);
   t[f]=f==="category"?(e.target.value.trim()||"General"):(f==="status"||f==="due"||f==="term")?e.target.value:+e.target.value;save();render();
 };
+const TRASH_MAX=25,TRASH_DAYS=30;
+function pruneTrash(){const cut=Date.now()-TRASH_DAYS*864e5;trash=trash.filter(x=>x&&x.t&&x.at>cut).slice(-TRASH_MAX)}
+let toastT=null;
+function toast(msg,undo){$("toastMsg").textContent=msg;const b=$("toastUndo");b.hidden=!undo;b.onclick=()=>{if(undo)undo();$("toast").hidden=true};$("toast").hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{$("toast").hidden=true},9000)}
+function delTask(id){
+  const i=tasks.findIndex(t=>t.id===id);if(i<0)return;
+  const t=tasks[i],entry={t:JSON.parse(JSON.stringify(t)),idx:i,at:Date.now()};
+  trash.push(entry);pruneTrash();tasks.splice(i,1);save();render();
+  const nm=t.name.length>28?t.name.slice(0,27)+"…":t.name;
+  toast("Deleted \u201C"+nm+"\u201D",()=>restoreEntry(entry));
+}
+function restoreEntry(x){
+  const k=trash.findIndex(y=>y.at===x.at&&y.t.id===x.t.id);if(k<0)return;
+  const e=trash.splice(k,1)[0],t=e.t;
+  if(tasks.some(y=>y.id===t.id))t.id=nextId++;
+  tasks.splice(Math.min(e.idx,tasks.length),0,t);save();render();
+}
+function renderTrash(){
+  const el=document.getElementById("trashList");if(!el)return;
+  el.innerHTML=trash.length?[...trash].reverse().map(x=>`<div class="crow"><span style="flex:1">${esc(x.t.name)}</span><span class="sub" style="margin:0">${new Date(x.at).toLocaleDateString([],{month:"short",day:"numeric"})}</span><button type="button" data-rs="${x.at}:${x.t.id}">Restore</button></div>`).join(""):`<div class="sub">Nothing deleted recently. Deleted tasks are kept for 30 days.</div>`;
+}
+$("trashList").onclick=e=>{const k=e.target.dataset&&e.target.dataset.rs;if(!k)return;const [at,id]=k.split(":");restoreEntry({at:+at,t:{id:+id}})};
 let remId=null;
 function setRem(iso){const t=tasks.find(x=>x.id===remId);if(!t)return;if(iso)t.remindAt=iso;else delete t.remindAt;save();render();$("dRem").close()}
 $("remSave").onclick=()=>{const v=fromLocalInput($("rmv").value);if(!v){$("rmv").focus();return}setRem(v)};
@@ -416,7 +446,7 @@ $("tb").onclick=e=>{
     remId=id;$("remName").textContent=t.name;$("rmv").value=toLocalInput(t.remindAt);$("dRem").showModal();return;
   }
   if(!e.target.hasAttribute("data-del"))return;
-  tasks=tasks.filter(t=>t.id!==id);save();render();
+  delTask(id);
 };
 $("bAdd").onclick=()=>{$("dAdd").showModal();setTimeout(()=>$("name").focus(),50)};
 $("bImp").onclick=()=>{$("impmsg").textContent="";$("dImp").showModal()};
