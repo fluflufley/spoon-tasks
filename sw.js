@@ -1,4 +1,4 @@
-const CACHE = "spoon-tasks-v10";
+const CACHE = "spoon-tasks-v11";
 const SHELL = ["./", "index.html", "manifest.json", "firebase-config.js", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => Promise.all(SHELL.map(u => c.add(u).catch(() => {}))))); self.skipWaiting(); });
 self.addEventListener("activate", e => {
@@ -18,5 +18,26 @@ self.addEventListener("fetch", e => {
     const hit = await c.match(e.request, {ignoreSearch: true});
     const net = fetch(e.request).then(r => { if (r.ok) c.put(e.request, r.clone()); return r }).catch(() => hit);
     return hit || net;
+  }));
+});
+
+// Push notifications (sent by the scheduled reminder job through Firebase Cloud Messaging).
+self.addEventListener("push", e => {
+  let p = {};
+  try { p = e.data ? e.data.json() : {}; } catch (x) { try { p = { data: { body: e.data.text() } }; } catch (y) {} }
+  const d = p.data || {}, n = p.notification || {};
+  const title = d.title || n.title || "\u{1F944} Spoon Tasks";
+  e.waitUntil(self.registration.showNotification(title, {
+    body: d.body || n.body || "",
+    tag: d.tag || undefined,
+    icon: "icon-192.png",
+    badge: "icon-192.png"
+  }));
+});
+self.addEventListener("notificationclick", e => {
+  e.notification.close();
+  e.waitUntil(clients.matchAll({ type: "window", includeUncontrolled: true }).then(list => {
+    for (const c of list) { if ("focus" in c) return c.focus(); }
+    return clients.openWindow("./");
   }));
 });

@@ -59,7 +59,7 @@ input,select,button{font-size:16px}
 thead{display:none}
 tbody tr{display:flex;flex-wrap:wrap;align-items:flex-end;gap:6px 10px;padding:10px 4px;border-bottom:1px solid var(--bd);position:relative}
 td{border:none;padding:0}
-td.n{flex:1 0 100%;width:auto;min-width:0;font-weight:600;padding-right:34px}
+td.n{flex:1 0 100%;width:auto;min-width:0;font-weight:600;padding-right:70px}
 td[data-l]::before{content:attr(data-l);display:block;font-size:11px;color:var(--mu);margin-bottom:2px}
 td input.dt{width:auto}
 td.del{position:absolute;top:6px;right:0}
@@ -80,6 +80,11 @@ td.c-term select.c,td.c-st select.c{padding:4px 5px}
 td[data-l]::before{font-size:10px;margin-bottom:1px}
 }
 table.h-cat .c-cat,table.h-term .c-term,table.h-pri .c-pri,table.h-sp .c-sp,table.h-st .c-st,table.h-due .c-due{display:none}
+.rmi{font-size:11px;font-weight:400;color:var(--mu);margin-top:2px}
+.rmi.past{opacity:.6}
+button.bell{font-size:15px;opacity:.45}
+button.bell.on{opacity:1}
+td.del{white-space:nowrap}
 .bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
 dialog{border:1px solid var(--bd);border-radius:14px;background:var(--card);color:var(--tx);padding:0;width:min(560px,calc(100% - 24px));max-height:88vh}
 dialog::backdrop{background:rgba(0,0,0,.45)}
@@ -107,7 +112,7 @@ table.show-ex .ex{display:block}
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v18</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v19</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -154,12 +159,22 @@ table.show-ex .ex{display:block}
 <label>Spoons<select id="sp"></select></label>
 <label>Status<select id="st"></select></label>
 <label>Due date (optional)<input type="date" id="dt"></label>
+<label>Reminder (optional)<input type="datetime-local" id="rm"></label>
 <div class="row"><button type="button" class="p" id="add">Add task</button><button type="button" id="add2">Add &amp; another</button><button type="button" data-close>Cancel</button></div>
 </form></div></dialog>
 
+<dialog id="dRem"><div class="dc">
+<div class="dh"><b>Reminder</b><button type="button" class="x" data-close title="Close">×</button></div>
+<p class="sub" id="remName" style="margin:0 0 10px"></p>
+<div class="fcol">
+<label>Remind me at<input type="datetime-local" id="rmv"></label>
+<div class="row"><button type="button" id="rem1h">In 1 hour</button><button type="button" id="remTom">Tomorrow 9:00</button></div>
+<div class="row"><button type="button" class="p" id="remSave">Save</button><button type="button" id="remClear">Remove reminder</button><button type="button" data-close>Cancel</button></div>
+</div></div></dialog>
+
 <dialog id="dImp"><div class="dc">
 <div class="dh"><b>Import tasks</b><button type="button" class="x" data-close title="Close">×</button></div>
-<p class="sub" style="margin:0 0 8px;font-size:13px">Use a CSV file (in Excel or Google Sheets: save/download as CSV), or copy the cells from your spreadsheet and paste them below. Put headers in the first row: Task, Category, Term, Priority, Spoons, Status, Date. Only Task is required. Priority and spoons run 0–7, and dates work best as YYYY-MM-DD. Imported tasks are added to your existing ones.</p>
+<p class="sub" style="margin:0 0 8px;font-size:13px">Use a CSV file (in Excel or Google Sheets: save/download as CSV), or copy the cells from your spreadsheet and paste them below. Put headers in the first row: Task, Category, Term, Priority, Spoons, Status, Date, Reminder (date and time). Only Task is required. Priority and spoons run 0–7, and dates work best as YYYY-MM-DD. Imported tasks are added to your existing ones.</p>
 <div class="fcol">
 <label>CSV file<input type="file" id="impf" accept=".csv,.tsv,.txt,text/csv"></label>
 <label>…or paste here<textarea id="impt" rows="6" style="font:inherit;font-size:16px;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:7px 9px;width:100%"></textarea></label>
@@ -173,6 +188,10 @@ table.show-ex .ex{display:block}
 <div class="row"><div class="chips" id="cols"></div><button type="button" id="tonly">Tasks only</button></div>
 <h4>Categories &amp; colors</h4>
 <div id="catpanel"></div>
+<h4>Reminders</h4>
+<p class="sub" style="margin:0 0 8px;font-size:13px">Get a notification at each task's reminder time. It also shows on your watch while the watch is connected to your phone. Delivery can be a few minutes late.</p>
+<div class="row"><button type="button" id="pushOn">Enable notifications on this device</button><button type="button" id="pushTest">Send a test</button></div>
+<div id="pushMsg" class="sub" style="margin:8px 0 0;font-size:13px"></div>
 <h4>Explanations</h4>
 <label style="flex-direction:row;align-items:center;gap:8px;color:var(--tx);font-size:14px"><input type="checkbox" id="exTog" style="padding:0"> Show the scale explanation under priority and spoons</label>
 <h4>Scale guide</h4>
@@ -199,13 +218,47 @@ async function flush(){
   wBusy=false;
   if(wPending){wPending=false;flush()}
 }
+let pushEnv=null;
+function pushMsg(t){const el=document.getElementById("pushMsg");if(el)el.textContent=t||""}
+function refreshPushUi(){
+  let on=false;try{on=localStorage.getItem("spoon-push-v1")==="1"}catch(e){}
+  if(!("Notification" in window)||!("serviceWorker" in navigator)){pushMsg("This browser doesn't support notifications.");return}
+  if(Notification.permission==="denied"){pushMsg("Notifications are blocked for this site in your browser settings.");return}
+  pushMsg(!pushEnv?"Sign in to enable reminders.":(on&&Notification.permission==="granted"?"✓ Notifications are on for this device.":"Not enabled on this device yet."));
+}
+async function enablePush(){
+  if(!pushEnv){pushMsg("Sign in first.");return}
+  const vapid=window.FCM_VAPID_KEY;
+  if(!vapid||/PASTE/.test(vapid)){pushMsg("Setup step missing: add FCM_VAPID_KEY to firebase-config.js (see SETUP.md).");return}
+  try{
+    pushMsg("Asking for permission…");
+    if(await Notification.requestPermission()!=="granted"){refreshPushUi();return}
+    const M=await import(pushEnv.base+"firebase-messaging.js");
+    if(!(await M.isSupported())){pushMsg("This browser can't receive push notifications.");return}
+    const reg=await navigator.serviceWorker.ready;
+    const token=await M.getToken(M.getMessaging(pushEnv.app),{vapidKey:vapid,serviceWorkerRegistration:reg});
+    if(!token){pushMsg("Couldn't get a device token.");return}
+    await pushEnv.F.setDoc(pushEnv.F.doc(pushEnv.fs,"users",pushEnv.uid,"data","devices"),{tokens:pushEnv.F.arrayUnion(token)},{merge:true});
+    try{localStorage.setItem("spoon-push-v1","1")}catch(e){}
+    refreshPushUi();
+  }catch(e){pushMsg("Couldn't enable notifications: "+(e.code||e.message||e))}
+}
+async function testPush(){
+  try{
+    if(!("Notification" in window)||Notification.permission!=="granted"){pushMsg("Enable notifications first.");return}
+    const reg=await navigator.serviceWorker.ready;
+    await reg.showNotification("🥄 Test reminder",{body:"If your watch buzzes, mirroring works.",icon:"icon-192.png",tag:"spoon-test"});
+    pushMsg("Test sent. Check your phone and watch.");
+  }catch(e){pushMsg("Test failed: "+(e.message||e))}
+}
 async function initStorage(){
   const cfg=window.FIREBASE_CONFIG;
   if(!cfg||!cfg.apiKey||/PASTE/.test(cfg.apiKey)){setSync("local");return}
   try{
     const base="https://www.gstatic.com/firebasejs/10.12.2/";
     const [App,A,F]=await Promise.all([import(base+"firebase-app.js"),import(base+"firebase-auth.js"),import(base+"firebase-firestore.js")]);
-    const app=App.initializeApp(cfg),auth=A.getAuth(app);
+    const cfg2={...cfg,messagingSenderId:cfg.messagingSenderId||String(cfg.appId||"").split(":")[1]};
+    const app=App.initializeApp(cfg2),auth=A.getAuth(app);
     const fs=F.initializeFirestore(app,{localCache:F.persistentLocalCache()});
     const err=m=>{$("autherr").textContent=m||""};
     const go=fn=>async()=>{err();try{await fn(auth,$("em").value.trim(),$("pw").value)}catch(e){err((e.code||"error").replace("auth/","").replace(/-/g," "))}};
@@ -228,6 +281,7 @@ async function initStorage(){
     A.onAuthStateChanged(auth,user=>{
       if(unsub){unsub();unsub=null}
       dbDoc=null;
+      pushEnv=user?{app,F,fs,uid:user.uid,base}:null;refreshPushUi();
       $("auth").hidden=!!user;$("signout").hidden=!user;
       if(!user){setSync("signin");return}
       const ref=F.doc(fs,"users",user.uid,"data","tasks");
@@ -263,10 +317,14 @@ function catHue(s){if(catHues[s]!=null)return catHues[s];let h=7;for(const c of 
 function scale(a,b,v){return Math.round(a+(b-a)*v/7)}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
+const pad=n=>String(n).padStart(2,"0");
+function toLocalInput(iso){if(!iso)return"";const d=new Date(iso);if(isNaN(d))return"";return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"T"+pad(d.getHours())+":"+pad(d.getMinutes())}
+function fromLocalInput(v){if(!v)return"";const d=new Date(v);return isNaN(d)?"":d.toISOString()}
+function fmtRem(iso){const d=new Date(iso);return isNaN(d)?"":d.toLocaleString([],{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}
 function add(keep){
   const name=$("name").value.trim();if(!name){$("name").focus();return}
-  tasks.push({id:nextId++,name,category:$("cat").value.trim()||"General",priority:+$("pri").value,spoons:+$("sp").value,status:$("st").value,due:$("dt").value||"",term:$("tm").value});
-  $("name").value="";$("dt").value="";save();render();if(keep)$("name").focus();else $("dAdd").close();
+  tasks.push({id:nextId++,name,category:$("cat").value.trim()||"General",priority:+$("pri").value,spoons:+$("sp").value,status:$("st").value,due:$("dt").value||"",term:$("tm").value,remindAt:fromLocalInput($("rm").value)});
+  $("name").value="";$("dt").value="";$("rm").value="";save();render();if(keep)$("name").focus();else $("dAdd").close();
 }
 $("add").onclick=()=>add(false);$("add2").onclick=()=>add(true);
 $("name").onkeydown=e=>{if(e.key==="Enter")add(false)};
@@ -327,14 +385,14 @@ function render(skip){
     list=[...list].sort((a,b)=>{for(const f of ch){const x=f(a)-f(b);if(x)return x*(-dir)}return a.id-b.id});
   }
   $("tb").innerHTML=list.length?list.map(t=>`<tr class="${t.status==="Done"?"done":""}" data-id="${t.id}">
-    <td class="n">${esc(t.name)}</td>
+    <td class="n">${esc(t.name)}${t.remindAt?`<div class="rmi${new Date(t.remindAt)<new Date()?" past":""}">🔔 ${fmtRem(t.remindAt)}</div>`:""}</td>
     <td class="c-cat" data-l="Cat."><input class="pill catin" data-f="category" list="cats" value="${esc(t.category)}" style="--h:${catHue(t.category)};width:${Math.max(6,t.category.length+5)}ch"></td>
     <td class="c-term" data-l="Term"><select data-f="term" class="c" style="--h:${(t.term||"short")==="long"?335:175}"><option value="short"${(t.term||"short")==="short"?" selected":""}>Short</option><option value="long"${t.term==="long"?" selected":""}>Long</option></select></td>
     <td class="c-pri" data-l="Prio."><select data-f="priority" class="c pri${t.priority===0?" dk":""}" title="${esc(PRI[t.priority])}" style="--h:${PH[t.priority]};--d:${Math.max(0,38-10*t.priority)};--s:${PS[t.priority]}%">${opts(nums,t.priority)}</select><div class="ex">${esc(PRI[t.priority])}</div></td>
     <td class="c-sp" data-l="Spoons"><select data-f="spoons" class="c sp${t.spoons>=4?" hi":""}" title="${esc(SP[t.spoons])}" style="--t:${t.spoons/7}">${opts(nums,t.spoons)}</select><div class="ex">${esc(SP[t.spoons])}</div></td>
     <td class="c-st" data-l="Status"><select data-f="status" class="c" style="--h:${STH[t.status]}">${opts(STATUSES,t.status)}</select></td>
     <td class="c-due" data-l="Due"><input type="date" data-f="due" class="dt${dcls(t)}" value="${t.due||""}"></td>
-    <td class="del"><button class="x" data-del title="Delete">×</button></td></tr>`).join("")
+    <td class="del"><button class="x bell${t.remindAt?" on":""}" data-bell title="Reminder">${t.remindAt?"🔔":"🔕"}</button><button class="x" data-del title="Delete">×</button></td></tr>`).join("")
     :`<tr><td colspan="7" class="empty">${tasks.length?"No tasks match these filters.":"No tasks yet — add your first one above."}</td></tr>`;
   const open=list.filter(t=>t.status!=="Done");
   $("sum").textContent=`${list.length} shown · ${open.reduce((s,t)=>s+t.spoons,0)} spoons across ${open.length} open task${open.length===1?"":"s"}`;
@@ -344,14 +402,26 @@ $("tb").onchange=e=>{
   const t=tasks.find(x=>x.id==tr.dataset.id);
   t[f]=f==="category"?(e.target.value.trim()||"General"):(f==="status"||f==="due"||f==="term")?e.target.value:+e.target.value;save();render();
 };
+let remId=null;
+function setRem(iso){const t=tasks.find(x=>x.id===remId);if(!t)return;if(iso)t.remindAt=iso;else delete t.remindAt;save();render();$("dRem").close()}
+$("remSave").onclick=()=>{const v=fromLocalInput($("rmv").value);if(!v){$("rmv").focus();return}setRem(v)};
+$("remClear").onclick=()=>setRem("");
+$("rem1h").onclick=()=>{$("rmv").value=toLocalInput(new Date(Date.now()+3600e3).toISOString())};
+$("remTom").onclick=()=>{const d=new Date();d.setDate(d.getDate()+1);d.setHours(9,0,0,0);$("rmv").value=toLocalInput(d.toISOString())};
 $("tb").onclick=e=>{
+  const tr=e.target.closest("tr");if(!tr)return;
+  const id=+tr.dataset.id;
+  if(e.target.hasAttribute("data-bell")){
+    const t=tasks.find(x=>x.id===id);if(!t)return;
+    remId=id;$("remName").textContent=t.name;$("rmv").value=toLocalInput(t.remindAt);$("dRem").showModal();return;
+  }
   if(!e.target.hasAttribute("data-del"))return;
-  const id=+e.target.closest("tr").dataset.id;
   tasks=tasks.filter(t=>t.id!==id);save();render();
 };
 $("bAdd").onclick=()=>{$("dAdd").showModal();setTimeout(()=>$("name").focus(),50)};
 $("bImp").onclick=()=>{$("impmsg").textContent="";$("dImp").showModal()};
 $("bSet").onclick=()=>$("dSet").showModal();
+$("pushOn").onclick=enablePush;$("pushTest").onclick=testPush;refreshPushUi();
 let showEx=false;try{showEx=localStorage.getItem("spoon-ex-v1")==="1"}catch(e){}
 $("exTog").checked=showEx;$("tbl").classList.toggle("show-ex",showEx);
 $("exTog").onchange=e=>{$("tbl").classList.toggle("show-ex",e.target.checked);try{localStorage.setItem("spoon-ex-v1",e.target.checked?"1":"0")}catch(x){}};
@@ -373,18 +443,19 @@ function parseTable(txt){
   return rows;
 }
 function importRows(rows){
-  const key=h=>{h=h.toLowerCase();return /categ/.test(h)?"category":/prior/.test(h)?"priority":/spoon/.test(h)?"spoons":/status|state/.test(h)?"status":/term|horizon/.test(h)?"term":/date|due|deadline/.test(h)?"due":/task|name|title|todo/.test(h)?"name":null};
+  const key=h=>{h=h.toLowerCase();return /categ/.test(h)?"category":/prior/.test(h)?"priority":/spoon/.test(h)?"spoons":/status|state/.test(h)?"status":/term|horizon/.test(h)?"term":/remind|alert|notif/.test(h)?"remind":/date|due|deadline/.test(h)?"due":/task|name|title|todo/.test(h)?"name":null};
   if(!rows.length)return {n:0,skip:0};
   let map=rows[0].map(key),body=rows.slice(1);
   if(!map.includes("name")){map=["name","category","priority","spoons","status","due"];body=rows}
   const num=(v,def)=>{const x=parseInt(v,10);return isNaN(x)?def:Math.min(7,Math.max(0,x))};
   const stat=v=>{v=(v||"").toLowerCase();return /done|complet|finish/.test(v)?"Done":/progress|doing|start|active/.test(v)?"In progress":/wait|block|hold/.test(v)?"Waiting":"To do"};
   const date=v=>{if(!v)return"";const m=v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);if(m)return m[1]+"-"+m[2].padStart(2,"0")+"-"+m[3].padStart(2,"0");const x=new Date(v);return isNaN(x)?"":ymd(x)};
+  const rem=v=>{if(!v)return"";const x=new Date(v.replace(" ","T"));return isNaN(x)?"":x.toISOString()};
   let n=0,skip=0;
   body.forEach(r=>{
     const o={};map.forEach((k,i)=>{if(k&&o[k]==null)o[k]=(r[i]||"").trim()});
     if(!o.name){skip++;return}
-    tasks.push({id:nextId++,name:o.name,category:o.category||"General",priority:num(o.priority,4),spoons:num(o.spoons,3),status:stat(o.status),due:date(o.due),term:/long/i.test(o.term||"")?"long":"short"});n++;
+    tasks.push({id:nextId++,name:o.name,category:o.category||"General",priority:num(o.priority,4),spoons:num(o.spoons,3),status:stat(o.status),remindAt:rem(o.remind),due:date(o.due),term:/long/i.test(o.term||"")?"long":"short"});n++;
   });
   return {n,skip};
 }

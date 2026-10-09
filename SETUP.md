@@ -40,3 +40,36 @@ It now opens full-screen from its own icon, with no browser bars.
 Open the app and tap **Continue with Google** (or use email and password). Sign in the same way on any other device to see the same tasks. Tasks you added before signing in are uploaded the first time.
 
 If you edit the files later, change `CACHE = "spoon-tasks-v1"` in sw.js to a new name (v2, v3…) so phones pick up the update.
+
+---
+
+# Reminders (optional, one-time setup, about 10 minutes)
+
+Reminders arrive as phone notifications, and your Garmin watch mirrors them while it is connected to the phone.
+A scheduled job on GitHub checks every 5 minutes (GitHub can start it a few minutes late) and sends the notifications.
+
+## A. Get the Web Push key
+1. Firebase console → gear icon → **Project settings** → **Cloud Messaging** tab.
+2. Under **Web configuration → Web Push certificates**, click **Generate key pair**.
+3. Copy the key pair (a long text).
+4. On GitHub, open `firebase-config.js` → pencil icon → replace `PASTE_YOUR_VAPID_KEY` with the key (keep the quotes) → **Commit changes**.
+   (This key is public and safe to store in the repository.)
+5. On the same Cloud Messaging tab, check that **Firebase Cloud Messaging API (V1)** says **Enabled**.
+
+## B. Give the scheduled job access (this key IS secret)
+1. Firebase console → **Project settings** → **Service accounts** tab → **Generate new private key** → a .json file downloads.
+2. On GitHub, open the repository → **Settings → Secrets and variables → Actions → New repository secret**.
+3. Name: `FIREBASE_SERVICE_ACCOUNT`. Value: open the downloaded file and paste its **entire contents**. Click **Add secret**.
+4. Delete the downloaded .json file from your computer. Never put it in the repository or share it.
+5. Open the **Actions** tab, choose **Send task reminders**, and click **Run workflow** once. It should finish with a green check.
+
+## C. Turn it on, on your phone
+1. Open the app (v19 or later) and sign in.
+2. ⚙ **Customize → Reminders → Enable notifications on this device** → Allow.
+3. Tap **Send a test** and check that your phone and watch both show it.
+4. Garmin Connect app → notification settings → make sure notifications are allowed for the **Spoon Tasks** app (or for Chrome if it is not listed). Menu names vary by app version.
+5. Android → Settings → Apps → Spoon Tasks → Battery → **Unrestricted**, so notifications are not delayed.
+
+## Notes
+- GitHub turns off scheduled jobs on a repository with no activity for 60 days. If reminders stop, open the Actions tab and enable the workflow again.
+- A reminder is only sent once per reminder time, and never for tasks marked Done or more than a day late.

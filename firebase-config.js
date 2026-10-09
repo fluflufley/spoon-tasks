@@ -9,3 +9,6 @@ window.FIREBASE_CONFIG = {
   appId: "1:15574417153:web:97c629b4886eaf71e72500",
   measurementId: "G-1XHGS9K4W9"
 };
+
+// Web Push key for reminders (see SETUP.md, "Reminders"). Replace the placeholder with your key pair.
+window.FCM_VAPID_KEY = "PASTE_YOUR_VAPID_KEY";
