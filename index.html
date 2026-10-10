@@ -142,7 +142,7 @@ table.show-ex .ex{display:block}
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v24</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v25</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -369,9 +369,11 @@ const PS=[52,50,46,52,68,68,68,68];
 const PRI=["Extremely Time Sensitive","Time Sensitive","Small, Significant Tasks","Things that are important to me","Small, Insignificant Tasks","Things that are mildly important to me","Things that I'd like to happen","Things that should happen sometime"];
 const SP=["Spoon Recharger","Simple, can always do it","Can do it with just a bit of energy","Can do it in the right state of mind","Can do it with the help of coffee","Need to actively plan out time to do it","Difficult to get in the right mind to do it","I really don't wanna"];
 function opts(arr,sel){return arr.map(v=>`<option${v==sel?" selected":""}>${v}</option>`).join("")}
+const SL={"In progress":"WIP"},sl=v=>SL[v]||v;
+function sopts(sel){return STATUSES.map(v=>`<option value="${v}"${v==sel?" selected":""}>${sl(v)}</option>`).join("")}
 function lopts(ex,sel){return nums.map(v=>`<option value="${v}"${v==sel?" selected":""}>${v} – ${ex[v]}</option>`).join("")}
-$("ep").innerHTML=lopts(PRI,4);$("es").innerHTML=lopts(SP,3);$("est").innerHTML=opts(STATUSES,"To do");
-$("pri").innerHTML=lopts(PRI,4);$("sp").innerHTML=lopts(SP,3);$("st").innerHTML=opts(STATUSES,"To do");
+$("ep").innerHTML=lopts(PRI,4);$("es").innerHTML=lopts(SP,3);$("est").innerHTML=sopts("To do");
+$("pri").innerHTML=lopts(PRI,4);$("sp").innerHTML=lopts(SP,3);$("st").innerHTML=sopts("To do");
 $("guide").innerHTML=`<div class="g"><b>Priority</b>${PRI.map((t,i)=>`<div><span class="pill pri${i===0?" dk":""}" style="--h:${PH[i]};--d:${Math.max(0,38-10*i)};--s:${PS[i]}%">${i}</span> ${t}</div>`).join("")}</div><div class="g"><b>Spoons</b>${SP.map((t,i)=>`<div><span class="pill sp${i>=4?" hi":""}" style="--t:${i/7}">${i}</span> ${t}</div>`).join("")}</div>`;
 const STH={"To do":25,"In progress":210,"Waiting":275,"Done":140};
 function catHue(s){if(catHues[s]!=null)return catHues[s];let h=7;for(const c of s)h=(h*31+c.charCodeAt(0))%360;return h}
@@ -431,7 +433,7 @@ function render(skip){
   const fcv=$("fc").value;
   $("fc").innerHTML=`<option value="">All</option>`+cats.map(c=>`<option${c===fcv?" selected":""}>${esc(c)}</option>`).join("");
   if(fcv&&!cats.includes(fcv))$("fc").value="";
-  if(!$("fs").children.length)$("fs").innerHTML=STATUSES.map(s=>`<label style="--h:${STH[s]}"><input type="checkbox" value="${s}"${s!=="Done"?" checked":""}>${s}</label>`).join("");
+  if(!$("fs").children.length)$("fs").innerHTML=STATUSES.map(s=>`<label style="--h:${STH[s]}"><input type="checkbox" value="${s}"${s!=="Done"?" checked":""}>${sl(s)}</label>`).join("");
   $("cats").innerHTML=cats.map(c=>`<option value="${esc(c)}">`).join("");
 
   const fc=$("fc").value,fs=[...$("fs").querySelectorAll("input:checked")].map(i=>i.value),sb=$("sb").value,dir=+$("sd").value;
@@ -454,7 +456,7 @@ function render(skip){
     <td class="c-term" data-l="Term"><select data-f="term" class="c" style="--h:${(t.term||"short")==="long"?335:175}"><option value="short"${(t.term||"short")==="short"?" selected":""}>Tactical</option><option value="long"${t.term==="long"?" selected":""}>Strategic</option></select></td>
     <td class="c-pri" data-l="Prio."><select data-f="priority" class="c pri${t.priority===0?" dk":""}" title="${esc(PRI[t.priority])}" style="--h:${PH[t.priority]};--d:${Math.max(0,38-10*t.priority)};--s:${PS[t.priority]}%">${opts(nums,t.priority)}</select><div class="ex">${esc(PRI[t.priority])}</div></td>
     <td class="c-sp" data-l="Spoons"><select data-f="spoons" class="c sp${t.spoons>=4?" hi":""}" title="${esc(SP[t.spoons])}" style="--t:${t.spoons/7}">${opts(nums,t.spoons)}</select><div class="ex">${esc(SP[t.spoons])}</div></td>
-    <td class="c-st" data-l="Status"><select data-f="status" class="c" style="--h:${STH[t.status]}">${opts(STATUSES,t.status)}</select></td>
+    <td class="c-st" data-l="Status"><select data-f="status" class="c" style="--h:${STH[t.status]}">${sopts(t.status)}</select></td>
     <td class="c-kind" data-l="Type"><select data-f="kind" class="c kd ${t.kind==="business"?"kb":"kp"}"><option value="business"${t.kind==="business"?" selected":""}>Business</option><option value="pleasure"${t.kind!=="business"?" selected":""}>Pleasure</option></select></td>
     <td class="c-due" data-l="Due"><input type="date" data-f="due" class="dt${dcls(t)}" value="${t.due||""}"></td>
     <td class="del"><button class="x edit" data-edit title="Edit">✎</button><button class="x bell${t.remindAt?" on":""}" data-bell title="Reminder">${t.remindAt?"🔔":"🔕"}</button><button class="x" data-del title="Delete">×</button></td></tr>`).join("")
@@ -503,7 +505,7 @@ function openDet(id){if(!tasks.some(x=>x.id===id))return;detId=id;renderDet();$(
 function renderDet(){
   const t=tasks.find(x=>x.id===detId);if(!t){if($("dDet").open)$("dDet").close();return}
   $("detTitle").textContent=t.name;
-  const bits=[(t.kind==="business"?"Business":"Pleasure"),t.category,(t.term==="long"?"Strategic":"Tactical"),"Priority "+t.priority,t.spoons+" spoon"+(t.spoons===1?"":"s"),t.status];
+  const bits=[(t.kind==="business"?"Business":"Pleasure"),t.category,(t.term==="long"?"Strategic":"Tactical"),"Priority "+t.priority,t.spoons+" spoon"+(t.spoons===1?"":"s"),sl(t.status)];
   if(t.due)bits.push("Due "+t.due);if(t.remindAt)bits.push("\u{1F514} "+fmtRem(t.remindAt));
   $("detInfo").textContent=bits.join(" \u00B7 ");
   const subs=t.subs||[],d=subs.filter(x=>x.d).length;
@@ -583,7 +585,7 @@ function importRows(rows){
   let map=rows[0].map(key),body=rows.slice(1);
   if(!map.includes("name")){map=["name","category","priority","spoons","status","due"];body=rows}
   const num=(v,def)=>{const x=parseInt(v,10);return isNaN(x)?def:Math.min(7,Math.max(0,x))};
-  const stat=v=>{v=(v||"").toLowerCase();return /done|complet|finish/.test(v)?"Done":/progress|doing|start|active/.test(v)?"In progress":/wait|block|hold/.test(v)?"Waiting":"To do"};
+  const stat=v=>{v=(v||"").toLowerCase();return /done|complet|finish/.test(v)?"Done":/progress|doing|start|active|wip/.test(v)?"In progress":/wait|block|hold/.test(v)?"Waiting":"To do"};
   const date=v=>{if(!v)return"";const m=v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);if(m)return m[1]+"-"+m[2].padStart(2,"0")+"-"+m[3].padStart(2,"0");const x=new Date(v);return isNaN(x)?"":ymd(x)};
   const rem=v=>{if(!v)return"";const x=new Date(v.replace(" ","T"));return isNaN(x)?"":x.toISOString()};
   let n=0,skip=0;
