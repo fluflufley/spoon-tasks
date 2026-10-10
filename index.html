@@ -32,6 +32,8 @@ button.p{background:var(--ac);color:#fff;border-color:var(--ac)}
 table{width:100%;border-collapse:collapse}
 th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--bd);white-space:nowrap}
 td.n{white-space:normal;width:100%;min-width:150px}
+td.n .nm{cursor:pointer}
+td.n .nm:hover{text-decoration:underline}
 select.c[data-f=priority],select.c[data-f=spoons]{width:3.9em}
 th{font-size:12px;color:var(--mu);font-weight:600;white-space:nowrap}
 th.s{cursor:pointer;user-select:none}
@@ -59,7 +61,7 @@ input,select,button{font-size:16px}
 thead{display:none}
 tbody tr{display:flex;flex-wrap:wrap;align-items:flex-end;gap:6px 10px;padding:10px 4px;border-bottom:1px solid var(--bd);position:relative}
 td{border:none;padding:0}
-td.n{flex:1 0 100%;width:auto;min-width:0;font-weight:600;padding-right:70px}
+td.n{flex:1 0 100%;width:auto;min-width:0;font-weight:600;padding-right:100px}
 td[data-l]::before{content:attr(data-l);display:block;font-size:11px;color:var(--mu);margin-bottom:2px}
 td input.dt{width:auto}
 td.del{position:absolute;top:6px;right:0}
@@ -85,6 +87,7 @@ table.h-cat .c-cat,table.h-term .c-term,table.h-pri .c-pri,table.h-sp .c-sp,tabl
 .toast button{background:none;border:none;color:inherit;font-weight:700;text-decoration:underline;padding:0;font-size:14px}
 .rmi{font-size:11px;font-weight:400;color:var(--mu);margin-top:2px}
 .rmi.past{opacity:.6}
+button.edit{font-size:15px}
 button.bell{font-size:15px;opacity:.45}
 button.bell.on{opacity:1}
 td.del{white-space:nowrap}
@@ -115,7 +118,7 @@ table.show-ex .ex{display:block}
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v20</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v21</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -164,6 +167,20 @@ table.show-ex .ex{display:block}
 <label>Due date (optional)<input type="date" id="dt"></label>
 <label>Reminder (optional)<input type="datetime-local" id="rm"></label>
 <div class="row"><button type="button" class="p" id="add">Add task</button><button type="button" id="add2">Add &amp; another</button><button type="button" data-close>Cancel</button></div>
+</form></div></dialog>
+
+<dialog id="dEdit"><div class="dc">
+<div class="dh"><b>Edit task</b><button type="button" class="x" data-close title="Close">×</button></div>
+<form id="fe" class="fcol" onsubmit="return false">
+<label>Task<input id="en"></label>
+<label>Category<input id="ec" list="cats"></label>
+<label>Term<select id="et"><option value="short">Short term</option><option value="long">Long term</option></select></label>
+<label>Priority<select id="ep"></select></label>
+<label>Spoons<select id="es"></select></label>
+<label>Status<select id="est"></select></label>
+<label>Due date (optional)<input type="date" id="ed"></label>
+<label>Reminder (optional)<input type="datetime-local" id="er"></label>
+<div class="row"><button type="button" class="p" id="eSave">Save</button><button type="button" data-close>Cancel</button></div>
 </form></div></dialog>
 
 <dialog id="dRem"><div class="dc">
@@ -317,6 +334,7 @@ const PRI=["Extremely Time Sensitive","Time Sensitive","Small, Significant Tasks
 const SP=["Spoon Recharger","Simple, can always do it","Can do it with just a bit of energy","Can do it in the right state of mind","Can do it with the help of coffee","Need to actively plan out time to do it","Difficult to get in the right mind to do it","I really don't wanna"];
 function opts(arr,sel){return arr.map(v=>`<option${v==sel?" selected":""}>${v}</option>`).join("")}
 function lopts(ex,sel){return nums.map(v=>`<option value="${v}"${v==sel?" selected":""}>${v} – ${ex[v]}</option>`).join("")}
+$("ep").innerHTML=lopts(PRI,4);$("es").innerHTML=lopts(SP,3);$("est").innerHTML=opts(STATUSES,"To do");
 $("pri").innerHTML=lopts(PRI,4);$("sp").innerHTML=lopts(SP,3);$("st").innerHTML=opts(STATUSES,"To do");
 $("guide").innerHTML=`<div class="g"><b>Priority</b>${PRI.map((t,i)=>`<div><span class="pill pri${i===0?" dk":""}" style="--h:${PH[i]};--d:${Math.max(0,38-10*i)};--s:${PS[i]}%">${i}</span> ${t}</div>`).join("")}</div><div class="g"><b>Spoons</b>${SP.map((t,i)=>`<div><span class="pill sp${i>=4?" hi":""}" style="--t:${i/7}">${i}</span> ${t}</div>`).join("")}</div>`;
 const STH={"To do":25,"In progress":210,"Waiting":275,"Done":140};
@@ -393,14 +411,14 @@ function render(skip){
     list=[...list].sort((a,b)=>{for(const f of ch){const x=f(a)-f(b);if(x)return x*(-dir)}return a.id-b.id});
   }
   $("tb").innerHTML=list.length?list.map(t=>`<tr class="${t.status==="Done"?"done":""}" data-id="${t.id}">
-    <td class="n">${esc(t.name)}${t.remindAt?`<div class="rmi${new Date(t.remindAt)<new Date()?" past":""}">🔔 ${fmtRem(t.remindAt)}</div>`:""}</td>
+    <td class="n"><span class="nm" data-edit title="Edit">${esc(t.name)}</span>${t.remindAt?`<div class="rmi${new Date(t.remindAt)<new Date()?" past":""}">🔔 ${fmtRem(t.remindAt)}</div>`:""}</td>
     <td class="c-cat" data-l="Cat."><input class="pill catin" data-f="category" list="cats" value="${esc(t.category)}" style="--h:${catHue(t.category)};width:${Math.max(6,t.category.length+5)}ch"></td>
     <td class="c-term" data-l="Term"><select data-f="term" class="c" style="--h:${(t.term||"short")==="long"?335:175}"><option value="short"${(t.term||"short")==="short"?" selected":""}>Short</option><option value="long"${t.term==="long"?" selected":""}>Long</option></select></td>
     <td class="c-pri" data-l="Prio."><select data-f="priority" class="c pri${t.priority===0?" dk":""}" title="${esc(PRI[t.priority])}" style="--h:${PH[t.priority]};--d:${Math.max(0,38-10*t.priority)};--s:${PS[t.priority]}%">${opts(nums,t.priority)}</select><div class="ex">${esc(PRI[t.priority])}</div></td>
     <td class="c-sp" data-l="Spoons"><select data-f="spoons" class="c sp${t.spoons>=4?" hi":""}" title="${esc(SP[t.spoons])}" style="--t:${t.spoons/7}">${opts(nums,t.spoons)}</select><div class="ex">${esc(SP[t.spoons])}</div></td>
     <td class="c-st" data-l="Status"><select data-f="status" class="c" style="--h:${STH[t.status]}">${opts(STATUSES,t.status)}</select></td>
     <td class="c-due" data-l="Due"><input type="date" data-f="due" class="dt${dcls(t)}" value="${t.due||""}"></td>
-    <td class="del"><button class="x bell${t.remindAt?" on":""}" data-bell title="Reminder">${t.remindAt?"🔔":"🔕"}</button><button class="x" data-del title="Delete">×</button></td></tr>`).join("")
+    <td class="del"><button class="x edit" data-edit title="Edit">✎</button><button class="x bell${t.remindAt?" on":""}" data-bell title="Reminder">${t.remindAt?"🔔":"🔕"}</button><button class="x" data-del title="Delete">×</button></td></tr>`).join("")
     :`<tr><td colspan="7" class="empty">${tasks.length?"No tasks match these filters.":"No tasks yet — add your first one above."}</td></tr>`;
   const open=list.filter(t=>t.status!=="Done");
   $("sum").textContent=`${list.length} shown · ${open.reduce((s,t)=>s+t.spoons,0)} spoons across ${open.length} open task${open.length===1?"":"s"}`;
@@ -432,6 +450,17 @@ function renderTrash(){
   el.innerHTML=trash.length?[...trash].reverse().map(x=>`<div class="crow"><span style="flex:1">${esc(x.t.name)}</span><span class="sub" style="margin:0">${new Date(x.at).toLocaleDateString([],{month:"short",day:"numeric"})}</span><button type="button" data-rs="${x.at}:${x.t.id}">Restore</button></div>`).join(""):`<div class="sub">Nothing deleted recently. Deleted tasks are kept for 30 days.</div>`;
 }
 $("trashList").onclick=e=>{const k=e.target.dataset&&e.target.dataset.rs;if(!k)return;const [at,id]=k.split(":");restoreEntry({at:+at,t:{id:+id}})};
+let editId=null;
+function saveEdit(){
+  const t=tasks.find(x=>x.id===editId);if(!t){$("dEdit").close();return}
+  const name=$("en").value.trim();if(!name){$("en").focus();return}
+  t.name=name;t.category=$("ec").value.trim()||"General";t.term=$("et").value;
+  t.priority=+$("ep").value;t.spoons=+$("es").value;t.status=$("est").value;t.due=$("ed").value||"";
+  const r=fromLocalInput($("er").value);if(r)t.remindAt=r;else delete t.remindAt;
+  save();render();$("dEdit").close();
+}
+$("eSave").onclick=saveEdit;
+$("en").onkeydown=e=>{if(e.key==="Enter")saveEdit()};
 let remId=null;
 function setRem(iso){const t=tasks.find(x=>x.id===remId);if(!t)return;if(iso)t.remindAt=iso;else delete t.remindAt;save();render();$("dRem").close()}
 $("remSave").onclick=()=>{const v=fromLocalInput($("rmv").value);if(!v){$("rmv").focus();return}setRem(v)};
@@ -441,6 +470,12 @@ $("remTom").onclick=()=>{const d=new Date();d.setDate(d.getDate()+1);d.setHours(
 $("tb").onclick=e=>{
   const tr=e.target.closest("tr");if(!tr)return;
   const id=+tr.dataset.id;
+  if(e.target.hasAttribute("data-edit")){
+    const t=tasks.find(x=>x.id===id);if(!t)return;
+    editId=id;$("en").value=t.name;$("ec").value=t.category;$("et").value=t.term==="long"?"long":"short";
+    $("ep").value=t.priority;$("es").value=t.spoons;$("est").value=t.status;$("ed").value=t.due||"";$("er").value=toLocalInput(t.remindAt);
+    $("dEdit").showModal();return;
+  }
   if(e.target.hasAttribute("data-bell")){
     const t=tasks.find(x=>x.id===id);if(!t)return;
     remId=id;$("remName").textContent=t.name;$("rmv").value=toLocalInput(t.remindAt);$("dRem").showModal();return;
