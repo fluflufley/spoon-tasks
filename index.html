@@ -13,9 +13,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
---ds:-1;--pl:88%;--pt:24%;--bl:68%;--slo:94;--shi:36;--sfg:hsl(270 45% 22%);--bg:#faf8f5;--card:#fff;--tx:#2a2622;--mu:#7a726a;--bd:#e6e0d8;--ac:#5b7f6e;--ac2:#e9f0ec}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ds:.4;--slo:22;--shi:55;--sfg:hsl(270 40% 90%);--pl:24%;--pt:85%;--bl:42%;--bg:#1b1917;--card:#252220;--tx:#efeae4;--mu:#9d948a;--bd:#38332f;--ac:#8fb7a3;--ac2:#2a3631}}
-:root[data-theme="dark"]{--ds:.4;--slo:22;--shi:55;--sfg:hsl(270 40% 90%);--pl:24%;--pt:85%;--bl:42%;--bg:#1b1917;--card:#252220;--tx:#efeae4;--mu:#9d948a;--bd:#38332f;--ac:#8fb7a3;--ac2:#2a3631}
+--kbb:hsl(220 18% 30%);--kbt:#fff;--ds:-1;--pl:88%;--pt:24%;--bl:68%;--slo:94;--shi:36;--sfg:hsl(270 45% 22%);--bg:#faf8f5;--card:#fff;--tx:#2a2622;--mu:#7a726a;--bd:#e6e0d8;--ac:#5b7f6e;--ac2:#e9f0ec}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--kbb:hsl(220 20% 72%);--kbt:hsl(220 25% 14%);--ds:.4;--slo:22;--shi:55;--sfg:hsl(270 40% 90%);--pl:24%;--pt:85%;--bl:42%;--bg:#1b1917;--card:#252220;--tx:#efeae4;--mu:#9d948a;--bd:#38332f;--ac:#8fb7a3;--ac2:#2a3631}}
+:root[data-theme="dark"]{--kbb:hsl(220 20% 72%);--kbt:hsl(220 25% 14%);--ds:.4;--slo:22;--shi:55;--sfg:hsl(270 40% 90%);--pl:24%;--pt:85%;--bl:42%;--bg:#1b1917;--card:#252220;--tx:#efeae4;--mu:#9d948a;--bd:#38332f;--ac:#8fb7a3;--ac2:#2a3631}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;padding:16px}
 .wrap{max-width:980px;margin:0 auto}
@@ -88,7 +88,18 @@ td input.catin{max-width:9em;padding:2px 7px}
 td.c-term select.c,td.c-st select.c{padding:4px 5px}
 td[data-l]::before{font-size:10px;margin-bottom:1px}
 }
-table.h-cat .c-cat,table.h-term .c-term,table.h-pri .c-pri,table.h-sp .c-sp,table.h-st .c-st,table.h-due .c-due{display:none}
+table.h-cat .c-cat,table.h-term .c-term,table.h-kind .c-kind,table.h-pri .c-pri,table.h-sp .c-sp,table.h-st .c-st,table.h-due .c-due{display:none}
+select.c.kb{background:var(--kbb);color:var(--kbt);border-color:var(--kbb)}
+select.c.kp{background:var(--bg);color:var(--mu);border-color:var(--bd);font-weight:500}
+tr.biz td.n{box-shadow:inset 3px 0 0 var(--kbb)}
+tr.gs td{border-top:3px solid var(--bd)}
+@media (max-width:640px){
+td.c-kind select.c{padding:4px 7px}
+tbody tr.biz{box-shadow:inset 3px 0 0 var(--kbb);padding-left:10px}
+tbody tr.gs{border-top:3px solid var(--bd)}
+tr.gs td{border-top:none}
+tr.biz td.n{box-shadow:none}
+}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--tx);color:var(--bg);padding:10px 16px;border-radius:12px;display:flex;gap:16px;align-items:center;z-index:50;box-shadow:0 4px 18px rgba(0,0,0,.3);max-width:calc(100% - 24px);font-size:14px}
 .toast[hidden]{display:none}
 .toast button{background:none;border:none;color:inherit;font-weight:700;text-decoration:underline;padding:0;font-size:14px}
@@ -125,7 +136,7 @@ table.show-ex .ex{display:block}
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v22</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v23</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -140,6 +151,7 @@ table.show-ex .ex{display:block}
 <label>Category<select id="fc"></select></label>
 <div><div style="font-size:12px;color:var(--mu);margin-bottom:3px">Status (none ticked = all)</div><div class="chips" id="fs"></div></div>
 <label>Term<select id="ft"><option value="">All</option><option value="short">Short term</option><option value="long">Long term</option></select></label>
+<label>Type<select id="fk"><option value="">All</option><option value="business">Business</option><option value="pleasure">Pleasure</option></select></label>
 <label>Date<select id="fd"><option value="">All dates</option><option value="overdue">Overdue</option><option value="today">Today</option><option value="tomorrow">Tomorrow</option><option value="week">Next 7 days</option><option value="none">No date</option><option value="date">Specific date…</option></select></label>
 <input type="date" id="fdv" hidden style="align-self:end">
 <label>Sort by<select id="sb">
@@ -154,7 +166,7 @@ table.show-ex .ex{display:block}
 <th>Task</th><th class="c-cat">Category</th><th class="s c-term" data-k="term">Term ↕</th>
 <th class="s c-pri" data-k="priority">Priority ↕</th>
 <th class="s c-sp" data-k="spoons">Spoons ↕</th>
-<th class="s c-st" data-k="status">Status ↕</th><th class="s c-due" data-k="due">Date ↕</th><th></th></tr></thead>
+<th class="s c-st" data-k="status">Status ↕</th><th class="c-kind">Type</th><th class="s c-due" data-k="due">Date ↕</th><th></th></tr></thead>
 <tbody id="tb"></tbody></table></div>
 <div class="sum" id="sum"></div>
 </div>
@@ -167,6 +179,7 @@ table.show-ex .ex{display:block}
 <form id="f" class="fcol" onsubmit="return false">
 <label>Task<input id="name" placeholder="What needs doing?"></label>
 <label>Category<input id="cat" list="cats" placeholder="e.g. Home"></label>
+<label>Type<select id="kd"><option value="pleasure">Pleasure</option><option value="business">Business</option></select></label>
 <label>Term<select id="tm"><option value="short">Short term</option><option value="long">Long term</option></select></label>
 <label>Priority<select id="pri"></select></label>
 <label>Spoons<select id="sp"></select></label>
@@ -190,6 +203,7 @@ table.show-ex .ex{display:block}
 <form id="fe" class="fcol" onsubmit="return false">
 <label>Task<input id="en"></label>
 <label>Category<input id="ec" list="cats"></label>
+<label>Type<select id="ek"><option value="pleasure">Pleasure</option><option value="business">Business</option></select></label>
 <label>Term<select id="et"><option value="short">Short term</option><option value="long">Long term</option></select></label>
 <label>Priority<select id="ep"></select></label>
 <label>Spoons<select id="es"></select></label>
@@ -210,7 +224,7 @@ table.show-ex .ex{display:block}
 
 <dialog id="dImp"><div class="dc">
 <div class="dh"><b>Import tasks</b><button type="button" class="x" data-close title="Close">×</button></div>
-<p class="sub" style="margin:0 0 8px;font-size:13px">Use a CSV file (in Excel or Google Sheets: save/download as CSV), or copy the cells from your spreadsheet and paste them below. Put headers in the first row: Task, Category, Term, Priority, Spoons, Status, Date, Reminder (date and time). Only Task is required. Priority and spoons run 0–7, and dates work best as YYYY-MM-DD. Imported tasks are added to your existing ones.</p>
+<p class="sub" style="margin:0 0 8px;font-size:13px">Use a CSV file (in Excel or Google Sheets: save/download as CSV), or copy the cells from your spreadsheet and paste them below. Put headers in the first row: Task, Category, Type (business or pleasure), Term, Priority, Spoons, Status, Date, Reminder (date and time). Only Task is required. Priority and spoons run 0–7, and dates work best as YYYY-MM-DD. Imported tasks are added to your existing ones.</p>
 <div class="fcol">
 <label>CSV file<input type="file" id="impf" accept=".csv,.tsv,.txt,text/csv"></label>
 <label>…or paste here<textarea id="impt" rows="6" style="font:inherit;font-size:16px;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:7px 9px;width:100%"></textarea></label>
@@ -364,13 +378,13 @@ function fromLocalInput(v){if(!v)return"";const d=new Date(v);return isNaN(d)?""
 function fmtRem(iso){const d=new Date(iso);return isNaN(d)?"":d.toLocaleString([],{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}
 function add(keep){
   const name=$("name").value.trim();if(!name){$("name").focus();return}
-  tasks.push({id:nextId++,name,category:$("cat").value.trim()||"General",priority:+$("pri").value,spoons:+$("sp").value,status:$("st").value,due:$("dt").value||"",term:$("tm").value,remindAt:fromLocalInput($("rm").value)});
+  tasks.push({id:nextId++,name,category:$("cat").value.trim()||"General",priority:+$("pri").value,spoons:+$("sp").value,status:$("st").value,due:$("dt").value||"",term:$("tm").value,kind:$("kd").value,remindAt:fromLocalInput($("rm").value)});
   $("name").value="";$("dt").value="";$("rm").value="";save();render();if(keep)$("name").focus();else $("dAdd").close();
 }
 $("add").onclick=()=>add(false);$("add2").onclick=()=>add(true);
 $("name").onkeydown=e=>{if(e.key==="Enter")add(false)};
-["fc","fs","sb","sd","fd","fdv","ft"].forEach(i=>$(i).onchange=render);
-$("reset").onclick=()=>{$("fc").value="";$("fs").querySelectorAll("input").forEach(i=>i.checked=i.value!=="Done");$("sb").value="priority";$("sd").value="-1";$("fd").value="";$("fdv").value="";$("ft").value="";render()};
+["fc","fs","sb","sd","fd","fdv","ft","fk"].forEach(i=>$(i).onchange=render);
+$("reset").onclick=()=>{$("fc").value="";$("fs").querySelectorAll("input").forEach(i=>i.checked=i.value!=="Done");$("sb").value="priority";$("sd").value="-1";$("fd").value="";$("fdv").value="";$("ft").value="";$("fk").value="";render()};
 document.querySelectorAll("th.s").forEach(th=>th.onclick=()=>{
   const k=th.dataset.k;
   if($("sb").value===k)$("sd").value=$("sd").value==="-1"?"1":"-1";else{$("sb").value=k;$("sd").value="-1"}
@@ -415,10 +429,10 @@ function render(skip){
   $("cats").innerHTML=cats.map(c=>`<option value="${esc(c)}">`).join("");
 
   const fc=$("fc").value,fs=[...$("fs").querySelectorAll("input:checked")].map(i=>i.value),sb=$("sb").value,dir=+$("sd").value;
-  const fd=$("fd").value,ft=$("ft").value,today=inDays(0);
+  const fd=$("fd").value,ft=$("ft").value,fk=$("fk").value,today=inDays(0);
   $("fdv").hidden=fd!=="date";
   const dateOk=t=>!fd||(fd==="overdue"?!!t.due&&t.due<today&&t.status!=="Done":fd==="today"?t.due===today:fd==="tomorrow"?t.due===inDays(1):fd==="week"?!!t.due&&t.due>=today&&t.due<=inDays(7):fd==="none"?!t.due:fd==="date"?(!$("fdv").value||t.due===$("fdv").value):true);
-  let list=tasks.filter(t=>(!fc||t.category===fc)&&(!fs.length||fs.includes(t.status))&&dateOk(t)&&(!ft||(t.term||"short")===ft));
+  let list=tasks.filter(t=>(!fc||t.category===fc)&&(!fs.length||fs.includes(t.status))&&dateOk(t)&&(!ft||(t.term||"short")===ft)&&(!fk||(t.kind==="business"?"business":"pleasure")===fk));
   const DL={priority:["0 → 7","7 → 0"],spoons:["0 → 7","7 → 0"],status:["To do first","Done first"],due:["Soonest first","Latest first"],term:["Short first","Long first"]}[sb]||["Default","Reversed"];
   $("sd").options[0].text=DL[0];$("sd").options[1].text=DL[1];$("sd").disabled=!sb;
   if(sb==="due"){list=[...list].sort((a,b)=>{if(!a.due!==!b.due)return a.due?-1:1;return ((a.due||"").localeCompare(b.due||"")||a.id-b.id)*(-dir)})}
@@ -427,23 +441,25 @@ function render(skip){
     const ch={priority:[t=>t.priority,t=>t.spoons,si],spoons:[t=>t.spoons,t=>t.priority,si],status:[si,t=>t.priority,t=>t.spoons],term:[ti,t=>t.priority,t=>t.spoons,si]}[sb];
     list=[...list].sort((a,b)=>{for(const f of ch){const x=f(a)-f(b);if(x)return x*(-dir)}return a.id-b.id});
   }
-  $("tb").innerHTML=list.length?list.map(t=>`<tr class="${t.status==="Done"?"done":""}" data-id="${t.id}">
+  list=[...list.filter(t=>t.kind==="business"),...list.filter(t=>t.kind!=="business")];
+  $("tb").innerHTML=list.length?list.map((t,i)=>`<tr class="${t.status==="Done"?"done":""}${t.kind==="business"?" biz":""}${i>0&&t.kind!=="business"&&list[i-1].kind==="business"?" gs":""}" data-id="${t.id}">
     <td class="n"><span class="nm" data-open title="Open">${esc(t.name)}</span>${subBadge(t)}${t.remindAt?`<div class="rmi${new Date(t.remindAt)<new Date()?" past":""}">🔔 ${fmtRem(t.remindAt)}</div>`:""}</td>
     <td class="c-cat" data-l="Cat."><input class="pill catin" data-f="category" list="cats" value="${esc(t.category)}" style="--h:${catHue(t.category)};width:${Math.max(6,t.category.length+5)}ch"></td>
     <td class="c-term" data-l="Term"><select data-f="term" class="c" style="--h:${(t.term||"short")==="long"?335:175}"><option value="short"${(t.term||"short")==="short"?" selected":""}>Short</option><option value="long"${t.term==="long"?" selected":""}>Long</option></select></td>
     <td class="c-pri" data-l="Prio."><select data-f="priority" class="c pri${t.priority===0?" dk":""}" title="${esc(PRI[t.priority])}" style="--h:${PH[t.priority]};--d:${Math.max(0,38-10*t.priority)};--s:${PS[t.priority]}%">${opts(nums,t.priority)}</select><div class="ex">${esc(PRI[t.priority])}</div></td>
     <td class="c-sp" data-l="Spoons"><select data-f="spoons" class="c sp${t.spoons>=4?" hi":""}" title="${esc(SP[t.spoons])}" style="--t:${t.spoons/7}">${opts(nums,t.spoons)}</select><div class="ex">${esc(SP[t.spoons])}</div></td>
     <td class="c-st" data-l="Status"><select data-f="status" class="c" style="--h:${STH[t.status]}">${opts(STATUSES,t.status)}</select></td>
+    <td class="c-kind" data-l="Type"><select data-f="kind" class="c kd ${t.kind==="business"?"kb":"kp"}"><option value="business"${t.kind==="business"?" selected":""}>Business</option><option value="pleasure"${t.kind!=="business"?" selected":""}>Pleasure</option></select></td>
     <td class="c-due" data-l="Due"><input type="date" data-f="due" class="dt${dcls(t)}" value="${t.due||""}"></td>
     <td class="del"><button class="x edit" data-edit title="Edit">✎</button><button class="x bell${t.remindAt?" on":""}" data-bell title="Reminder">${t.remindAt?"🔔":"🔕"}</button><button class="x" data-del title="Delete">×</button></td></tr>`).join("")
-    :`<tr><td colspan="7" class="empty">${tasks.length?"No tasks match these filters.":"No tasks yet — add your first one above."}</td></tr>`;
+    :`<tr><td colspan="8" class="empty">${tasks.length?"No tasks match these filters.":"No tasks yet — add your first one above."}</td></tr>`;
   const open=list.filter(t=>t.status!=="Done");
   $("sum").textContent=`${list.length} shown · ${open.reduce((s,t)=>s+t.spoons,0)} spoons across ${open.length} open task${open.length===1?"":"s"}`;
 }
 $("tb").onchange=e=>{
   const tr=e.target.closest("tr"),f=e.target.dataset.f;if(!tr||!f)return;
   const t=tasks.find(x=>x.id==tr.dataset.id);
-  t[f]=f==="category"?(e.target.value.trim()||"General"):(f==="status"||f==="due"||f==="term")?e.target.value:+e.target.value;save();render();
+  t[f]=f==="category"?(e.target.value.trim()||"General"):(f==="status"||f==="due"||f==="term"||f==="kind")?e.target.value:+e.target.value;save();render();
 };
 const TRASH_MAX=25,TRASH_DAYS=30;
 function pruneTrash(){const cut=Date.now()-TRASH_DAYS*864e5;trash=trash.filter(x=>x&&x.t&&x.at>cut).slice(-TRASH_MAX)}
@@ -470,7 +486,7 @@ $("trashList").onclick=e=>{const k=e.target.dataset&&e.target.dataset.rs;if(!k)r
 let editId=null;
 function openEdit(id){
   const t=tasks.find(x=>x.id===id);if(!t)return;
-  editId=id;$("en").value=t.name;$("ec").value=t.category;$("et").value=t.term==="long"?"long":"short";
+  editId=id;$("en").value=t.name;$("ec").value=t.category;$("et").value=t.term==="long"?"long":"short";$("ek").value=t.kind==="business"?"business":"pleasure";
   $("ep").value=t.priority;$("es").value=t.spoons;$("est").value=t.status;$("ed").value=t.due||"";$("er").value=toLocalInput(t.remindAt);
   $("dEdit").showModal();
 }
@@ -481,7 +497,7 @@ function openDet(id){if(!tasks.some(x=>x.id===id))return;detId=id;renderDet();$(
 function renderDet(){
   const t=tasks.find(x=>x.id===detId);if(!t){if($("dDet").open)$("dDet").close();return}
   $("detTitle").textContent=t.name;
-  const bits=[t.category,(t.term==="long"?"Long term":"Short term"),"Priority "+t.priority,t.spoons+" spoon"+(t.spoons===1?"":"s"),t.status];
+  const bits=[(t.kind==="business"?"Business":"Pleasure"),t.category,(t.term==="long"?"Long term":"Short term"),"Priority "+t.priority,t.spoons+" spoon"+(t.spoons===1?"":"s"),t.status];
   if(t.due)bits.push("Due "+t.due);if(t.remindAt)bits.push("\u{1F514} "+fmtRem(t.remindAt));
   $("detInfo").textContent=bits.join(" \u00B7 ");
   const subs=t.subs||[],d=subs.filter(x=>x.d).length;
@@ -506,7 +522,7 @@ $("detEdit").onclick=()=>{const id=detId;$("dDet").close();openEdit(id)};
 function saveEdit(){
   const t=tasks.find(x=>x.id===editId);if(!t){$("dEdit").close();return}
   const name=$("en").value.trim();if(!name){$("en").focus();return}
-  t.name=name;t.category=$("ec").value.trim()||"General";t.term=$("et").value;
+  t.name=name;t.category=$("ec").value.trim()||"General";t.term=$("et").value;t.kind=$("ek").value;
   t.priority=+$("ep").value;t.spoons=+$("es").value;t.status=$("est").value;t.due=$("ed").value||"";
   const r=fromLocalInput($("er").value);if(r)t.remindAt=r;else delete t.remindAt;
   save();render();$("dEdit").close();
@@ -531,7 +547,7 @@ $("tb").onclick=e=>{
   if(!e.target.hasAttribute("data-del"))return;
   delTask(id);
 };
-$("bAdd").onclick=()=>{$("dAdd").showModal();setTimeout(()=>$("name").focus(),50)};
+$("bAdd").onclick=()=>{$("kd").value="pleasure";$("dAdd").showModal();setTimeout(()=>$("name").focus(),50)};
 $("bImp").onclick=()=>{$("impmsg").textContent="";$("dImp").showModal()};
 $("bSet").onclick=()=>$("dSet").showModal();
 $("pushOn").onclick=enablePush;$("pushTest").onclick=testPush;refreshPushUi();
@@ -556,7 +572,7 @@ function parseTable(txt){
   return rows;
 }
 function importRows(rows){
-  const key=h=>{h=h.toLowerCase();return /categ/.test(h)?"category":/prior/.test(h)?"priority":/spoon/.test(h)?"spoons":/status|state/.test(h)?"status":/term|horizon/.test(h)?"term":/remind|alert|notif/.test(h)?"remind":/date|due|deadline/.test(h)?"due":/task|name|title|todo/.test(h)?"name":null};
+  const key=h=>{h=h.toLowerCase();return /categ/.test(h)?"category":/prior/.test(h)?"priority":/spoon/.test(h)?"spoons":/status|state/.test(h)?"status":/term|horizon/.test(h)?"term":/remind|alert|notif/.test(h)?"remind":/type|kind/.test(h)?"kind":/date|due|deadline/.test(h)?"due":/task|name|title|todo/.test(h)?"name":null};
   if(!rows.length)return {n:0,skip:0};
   let map=rows[0].map(key),body=rows.slice(1);
   if(!map.includes("name")){map=["name","category","priority","spoons","status","due"];body=rows}
@@ -568,7 +584,7 @@ function importRows(rows){
   body.forEach(r=>{
     const o={};map.forEach((k,i)=>{if(k&&o[k]==null)o[k]=(r[i]||"").trim()});
     if(!o.name){skip++;return}
-    tasks.push({id:nextId++,name:o.name,category:o.category||"General",priority:num(o.priority,4),spoons:num(o.spoons,3),status:stat(o.status),remindAt:rem(o.remind),due:date(o.due),term:/long/i.test(o.term||"")?"long":"short"});n++;
+    tasks.push({id:nextId++,name:o.name,category:o.category||"General",priority:num(o.priority,4),spoons:num(o.spoons,3),status:stat(o.status),kind:/bus|work/i.test(o.kind||"")?"business":"pleasure",remindAt:rem(o.remind),due:date(o.due),term:/long/i.test(o.term||"")?"long":"short"});n++;
   });
   return {n,skip};
 }
@@ -580,7 +596,7 @@ $("impgo").onclick=()=>{
   if(r.n){save();render();$("impt").value="";$("impf").value=""}
   $("impmsg").textContent=r.n?`Imported ${r.n} task${r.n===1?"":"s"}${r.skip?` (${r.skip} skipped: no task name)`:""}.`:"Nothing imported — check that the first row has headers like Task, Category, Priority.";
 };
-const COLS=[["cat","Category"],["term","Term"],["pri","Priority"],["sp","Spoons"],["st","Status"],["due","Date"]];
+const COLS=[["cat","Category"],["term","Term"],["pri","Priority"],["sp","Spoons"],["st","Status"],["kind","Type"],["due","Date"]];
 let hidCols=[];try{hidCols=JSON.parse(localStorage.getItem("spoon-cols-v1")||"[]")}catch(e){}
 $("cols").innerHTML=COLS.map(([k,n])=>`<label style="--h:150"><input type="checkbox" value="${k}">${n}</label>`).join("");
 function applyCols(){
