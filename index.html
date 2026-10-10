@@ -94,11 +94,17 @@ select.c.kp{background:var(--bg);color:var(--mu);border-color:var(--bd);font-wei
 tr.biz td.n{box-shadow:inset 3px 0 0 var(--kbb)}
 tr.gs td{border-top:3px solid var(--bd)}
 @media (max-width:640px){
-td.c-kind select.c{padding:4px 7px}
-tbody tr.biz{box-shadow:inset 3px 0 0 var(--kbb);padding-left:10px}
+td.c-kind select.c{padding:4px 5px}
+td.c-due input.dt{width:116px;padding:4px 2px 4px 5px;font-size:14px}
+tbody tr.biz{box-shadow:inset 3px 0 0 var(--kbb);padding-left:8px}
 tbody tr.gs{border-top:3px solid var(--bd)}
 tr.gs td{border-top:none}
 tr.biz td.n{box-shadow:none}
+}
+@media (max-width:380px){
+td.c-st select.c,td.c-kind select.c{padding:4px 4px}
+td.c-due input.dt{width:106px;font-size:13px;padding:4px 2px 4px 4px}
+tbody tr{gap:6px 4px}
 }
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--tx);color:var(--bg);padding:10px 16px;border-radius:12px;display:flex;gap:16px;align-items:center;z-index:50;box-shadow:0 4px 18px rgba(0,0,0,.3);max-width:calc(100% - 24px);font-size:14px}
 .toast[hidden]{display:none}
@@ -136,7 +142,7 @@ table.show-ex .ex{display:block}
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v23</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v24</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -150,7 +156,7 @@ table.show-ex .ex{display:block}
 <div class="card row" id="filters">
 <label>Category<select id="fc"></select></label>
 <div><div style="font-size:12px;color:var(--mu);margin-bottom:3px">Status (none ticked = all)</div><div class="chips" id="fs"></div></div>
-<label>Term<select id="ft"><option value="">All</option><option value="short">Short term</option><option value="long">Long term</option></select></label>
+<label>Term<select id="ft"><option value="">All</option><option value="short">Tactical</option><option value="long">Strategic</option></select></label>
 <label>Type<select id="fk"><option value="">All</option><option value="business">Business</option><option value="pleasure">Pleasure</option></select></label>
 <label>Date<select id="fd"><option value="">All dates</option><option value="overdue">Overdue</option><option value="today">Today</option><option value="tomorrow">Tomorrow</option><option value="week">Next 7 days</option><option value="none">No date</option><option value="date">Specific date…</option></select></label>
 <input type="date" id="fdv" hidden style="align-self:end">
@@ -180,7 +186,7 @@ table.show-ex .ex{display:block}
 <label>Task<input id="name" placeholder="What needs doing?"></label>
 <label>Category<input id="cat" list="cats" placeholder="e.g. Home"></label>
 <label>Type<select id="kd"><option value="pleasure">Pleasure</option><option value="business">Business</option></select></label>
-<label>Term<select id="tm"><option value="short">Short term</option><option value="long">Long term</option></select></label>
+<label>Term<select id="tm"><option value="short">Tactical</option><option value="long">Strategic</option></select></label>
 <label>Priority<select id="pri"></select></label>
 <label>Spoons<select id="sp"></select></label>
 <label>Status<select id="st"></select></label>
@@ -204,7 +210,7 @@ table.show-ex .ex{display:block}
 <label>Task<input id="en"></label>
 <label>Category<input id="ec" list="cats"></label>
 <label>Type<select id="ek"><option value="pleasure">Pleasure</option><option value="business">Business</option></select></label>
-<label>Term<select id="et"><option value="short">Short term</option><option value="long">Long term</option></select></label>
+<label>Term<select id="et"><option value="short">Tactical</option><option value="long">Strategic</option></select></label>
 <label>Priority<select id="ep"></select></label>
 <label>Spoons<select id="es"></select></label>
 <label>Status<select id="est"></select></label>
@@ -433,7 +439,7 @@ function render(skip){
   $("fdv").hidden=fd!=="date";
   const dateOk=t=>!fd||(fd==="overdue"?!!t.due&&t.due<today&&t.status!=="Done":fd==="today"?t.due===today:fd==="tomorrow"?t.due===inDays(1):fd==="week"?!!t.due&&t.due>=today&&t.due<=inDays(7):fd==="none"?!t.due:fd==="date"?(!$("fdv").value||t.due===$("fdv").value):true);
   let list=tasks.filter(t=>(!fc||t.category===fc)&&(!fs.length||fs.includes(t.status))&&dateOk(t)&&(!ft||(t.term||"short")===ft)&&(!fk||(t.kind==="business"?"business":"pleasure")===fk));
-  const DL={priority:["0 → 7","7 → 0"],spoons:["0 → 7","7 → 0"],status:["To do first","Done first"],due:["Soonest first","Latest first"],term:["Short first","Long first"]}[sb]||["Default","Reversed"];
+  const DL={priority:["0 → 7","7 → 0"],spoons:["0 → 7","7 → 0"],status:["To do first","Done first"],due:["Soonest first","Latest first"],term:["Tactical first","Strategic first"]}[sb]||["Default","Reversed"];
   $("sd").options[0].text=DL[0];$("sd").options[1].text=DL[1];$("sd").disabled=!sb;
   if(sb==="due"){list=[...list].sort((a,b)=>{if(!a.due!==!b.due)return a.due?-1:1;return ((a.due||"").localeCompare(b.due||"")||a.id-b.id)*(-dir)})}
   else if(sb){
@@ -445,7 +451,7 @@ function render(skip){
   $("tb").innerHTML=list.length?list.map((t,i)=>`<tr class="${t.status==="Done"?"done":""}${t.kind==="business"?" biz":""}${i>0&&t.kind!=="business"&&list[i-1].kind==="business"?" gs":""}" data-id="${t.id}">
     <td class="n"><span class="nm" data-open title="Open">${esc(t.name)}</span>${subBadge(t)}${t.remindAt?`<div class="rmi${new Date(t.remindAt)<new Date()?" past":""}">🔔 ${fmtRem(t.remindAt)}</div>`:""}</td>
     <td class="c-cat" data-l="Cat."><input class="pill catin" data-f="category" list="cats" value="${esc(t.category)}" style="--h:${catHue(t.category)};width:${Math.max(6,t.category.length+5)}ch"></td>
-    <td class="c-term" data-l="Term"><select data-f="term" class="c" style="--h:${(t.term||"short")==="long"?335:175}"><option value="short"${(t.term||"short")==="short"?" selected":""}>Short</option><option value="long"${t.term==="long"?" selected":""}>Long</option></select></td>
+    <td class="c-term" data-l="Term"><select data-f="term" class="c" style="--h:${(t.term||"short")==="long"?335:175}"><option value="short"${(t.term||"short")==="short"?" selected":""}>Tactical</option><option value="long"${t.term==="long"?" selected":""}>Strategic</option></select></td>
     <td class="c-pri" data-l="Prio."><select data-f="priority" class="c pri${t.priority===0?" dk":""}" title="${esc(PRI[t.priority])}" style="--h:${PH[t.priority]};--d:${Math.max(0,38-10*t.priority)};--s:${PS[t.priority]}%">${opts(nums,t.priority)}</select><div class="ex">${esc(PRI[t.priority])}</div></td>
     <td class="c-sp" data-l="Spoons"><select data-f="spoons" class="c sp${t.spoons>=4?" hi":""}" title="${esc(SP[t.spoons])}" style="--t:${t.spoons/7}">${opts(nums,t.spoons)}</select><div class="ex">${esc(SP[t.spoons])}</div></td>
     <td class="c-st" data-l="Status"><select data-f="status" class="c" style="--h:${STH[t.status]}">${opts(STATUSES,t.status)}</select></td>
@@ -497,7 +503,7 @@ function openDet(id){if(!tasks.some(x=>x.id===id))return;detId=id;renderDet();$(
 function renderDet(){
   const t=tasks.find(x=>x.id===detId);if(!t){if($("dDet").open)$("dDet").close();return}
   $("detTitle").textContent=t.name;
-  const bits=[(t.kind==="business"?"Business":"Pleasure"),t.category,(t.term==="long"?"Long term":"Short term"),"Priority "+t.priority,t.spoons+" spoon"+(t.spoons===1?"":"s"),t.status];
+  const bits=[(t.kind==="business"?"Business":"Pleasure"),t.category,(t.term==="long"?"Strategic":"Tactical"),"Priority "+t.priority,t.spoons+" spoon"+(t.spoons===1?"":"s"),t.status];
   if(t.due)bits.push("Due "+t.due);if(t.remindAt)bits.push("\u{1F514} "+fmtRem(t.remindAt));
   $("detInfo").textContent=bits.join(" \u00B7 ");
   const subs=t.subs||[],d=subs.filter(x=>x.d).length;
@@ -584,7 +590,7 @@ function importRows(rows){
   body.forEach(r=>{
     const o={};map.forEach((k,i)=>{if(k&&o[k]==null)o[k]=(r[i]||"").trim()});
     if(!o.name){skip++;return}
-    tasks.push({id:nextId++,name:o.name,category:o.category||"General",priority:num(o.priority,4),spoons:num(o.spoons,3),status:stat(o.status),kind:/bus|work/i.test(o.kind||"")?"business":"pleasure",remindAt:rem(o.remind),due:date(o.due),term:/long/i.test(o.term||"")?"long":"short"});n++;
+    tasks.push({id:nextId++,name:o.name,category:o.category||"General",priority:num(o.priority,4),spoons:num(o.spoons,3),status:stat(o.status),kind:/bus|work/i.test(o.kind||"")?"business":"pleasure",remindAt:rem(o.remind),due:date(o.due),term:/long|strateg/i.test(o.term||"")?"long":"short"});n++;
   });
   return {n,skip};
 }
