@@ -33,6 +33,13 @@ table{width:100%;border-collapse:collapse}
 th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--bd);white-space:nowrap}
 td.n{white-space:normal;width:100%;min-width:150px}
 td.n .nm{cursor:pointer}
+.sc{font-size:11px;font-weight:600;color:var(--mu);background:var(--bg);border:1px solid var(--bd);border-radius:99px;padding:1px 7px;margin-left:6px;cursor:pointer;white-space:nowrap}
+.sc.ok{color:var(--ac);border-color:var(--ac)}
+.sub-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--bd)}
+.sub-row input[type=checkbox]{width:22px;height:22px;flex:none;padding:0;accent-color:var(--ac)}
+.sub-row .st{flex:1;overflow-wrap:anywhere}
+.sub-row.dn .st{text-decoration:line-through;color:var(--mu)}
+.sub-row .x{flex:none}
 td.n .nm:hover{text-decoration:underline}
 select.c[data-f=priority],select.c[data-f=spoons]{width:3.9em}
 th{font-size:12px;color:var(--mu);font-weight:600;white-space:nowrap}
@@ -118,7 +125,7 @@ table.show-ex .ex{display:block}
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v21</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v22</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -168,6 +175,15 @@ table.show-ex .ex{display:block}
 <label>Reminder (optional)<input type="datetime-local" id="rm"></label>
 <div class="row"><button type="button" class="p" id="add">Add task</button><button type="button" id="add2">Add &amp; another</button><button type="button" data-close>Cancel</button></div>
 </form></div></dialog>
+
+<dialog id="dDet"><div class="dc">
+<div class="dh"><b id="detTitle" style="overflow-wrap:anywhere"></b><button type="button" class="x" data-close title="Close">×</button></div>
+<div id="detInfo" class="sub" style="margin:0 0 10px;font-size:13px"></div>
+<h4 style="margin-top:6px">Subtasks <span id="detCount" class="sub" style="font-weight:400;font-size:13px"></span></h4>
+<div id="subList"></div>
+<div class="row" style="margin-top:10px"><label class="grow" style="min-width:0"><input id="subIn" placeholder="Add a subtask…" maxlength="200"></label><button type="button" class="p" id="subAdd">Add</button></div>
+<div class="row" style="margin-top:14px"><button type="button" id="detEdit">Edit task</button><button type="button" data-close>Close</button></div>
+</div></dialog>
 
 <dialog id="dEdit"><div class="dc">
 <div class="dh"><b>Edit task</b><button type="button" class="x" data-close title="Close">×</button></div>
@@ -389,6 +405,7 @@ $("catpanel").onchange=e=>{
 };
 function render(skip){
   renderTrash();
+  if(detId!==null&&$("dDet").open)renderDet();
   const cats=[...new Set(tasks.map(t=>t.category))].sort();
   if(!skip)renderCats(cats);
   const fcv=$("fc").value;
@@ -411,7 +428,7 @@ function render(skip){
     list=[...list].sort((a,b)=>{for(const f of ch){const x=f(a)-f(b);if(x)return x*(-dir)}return a.id-b.id});
   }
   $("tb").innerHTML=list.length?list.map(t=>`<tr class="${t.status==="Done"?"done":""}" data-id="${t.id}">
-    <td class="n"><span class="nm" data-edit title="Edit">${esc(t.name)}</span>${t.remindAt?`<div class="rmi${new Date(t.remindAt)<new Date()?" past":""}">🔔 ${fmtRem(t.remindAt)}</div>`:""}</td>
+    <td class="n"><span class="nm" data-open title="Open">${esc(t.name)}</span>${subBadge(t)}${t.remindAt?`<div class="rmi${new Date(t.remindAt)<new Date()?" past":""}">🔔 ${fmtRem(t.remindAt)}</div>`:""}</td>
     <td class="c-cat" data-l="Cat."><input class="pill catin" data-f="category" list="cats" value="${esc(t.category)}" style="--h:${catHue(t.category)};width:${Math.max(6,t.category.length+5)}ch"></td>
     <td class="c-term" data-l="Term"><select data-f="term" class="c" style="--h:${(t.term||"short")==="long"?335:175}"><option value="short"${(t.term||"short")==="short"?" selected":""}>Short</option><option value="long"${t.term==="long"?" selected":""}>Long</option></select></td>
     <td class="c-pri" data-l="Prio."><select data-f="priority" class="c pri${t.priority===0?" dk":""}" title="${esc(PRI[t.priority])}" style="--h:${PH[t.priority]};--d:${Math.max(0,38-10*t.priority)};--s:${PS[t.priority]}%">${opts(nums,t.priority)}</select><div class="ex">${esc(PRI[t.priority])}</div></td>
@@ -451,6 +468,41 @@ function renderTrash(){
 }
 $("trashList").onclick=e=>{const k=e.target.dataset&&e.target.dataset.rs;if(!k)return;const [at,id]=k.split(":");restoreEntry({at:+at,t:{id:+id}})};
 let editId=null;
+function openEdit(id){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  editId=id;$("en").value=t.name;$("ec").value=t.category;$("et").value=t.term==="long"?"long":"short";
+  $("ep").value=t.priority;$("es").value=t.spoons;$("est").value=t.status;$("ed").value=t.due||"";$("er").value=toLocalInput(t.remindAt);
+  $("dEdit").showModal();
+}
+// ---- subtasks ----
+let detId=null;
+function subBadge(t){const n=(t.subs||[]).length;if(!n)return"";const d=t.subs.filter(x=>x.d).length;return `<span class="sc${d===n?" ok":""}" data-open title="Subtasks">\u2611 ${d}/${n}</span>`}
+function openDet(id){if(!tasks.some(x=>x.id===id))return;detId=id;renderDet();$("subIn").value="";$("dDet").showModal()}
+function renderDet(){
+  const t=tasks.find(x=>x.id===detId);if(!t){if($("dDet").open)$("dDet").close();return}
+  $("detTitle").textContent=t.name;
+  const bits=[t.category,(t.term==="long"?"Long term":"Short term"),"Priority "+t.priority,t.spoons+" spoon"+(t.spoons===1?"":"s"),t.status];
+  if(t.due)bits.push("Due "+t.due);if(t.remindAt)bits.push("\u{1F514} "+fmtRem(t.remindAt));
+  $("detInfo").textContent=bits.join(" \u00B7 ");
+  const subs=t.subs||[],d=subs.filter(x=>x.d).length;
+  $("detCount").textContent=subs.length?`(${d} of ${subs.length} done)`:"";
+  $("subList").innerHTML=subs.length?subs.map(x=>`<div class="sub-row${x.d?" dn":""}" data-sid="${x.id}"><input type="checkbox" data-sc${x.d?" checked":""}><span class="st">${esc(x.t)}</span><button type="button" class="x" data-sdel title="Delete subtask">\u00D7</button></div>`).join(""):`<div class="sub" style="margin:0;font-size:13px">No subtasks yet.</div>`;
+}
+function addSub(){
+  const t=tasks.find(x=>x.id===detId);const v=$("subIn").value.trim();if(!t||!v){$("subIn").focus();return}
+  t.subs=t.subs||[];t.subs.push({id:Math.max(0,...t.subs.map(x=>x.id))+1,t:v,d:false});
+  $("subIn").value="";save();render();$("subIn").focus();
+}
+$("subAdd").onclick=addSub;
+$("subIn").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();addSub()}};
+$("subList").onclick=e=>{
+  const row=e.target.closest(".sub-row");if(!row)return;
+  const t=tasks.find(x=>x.id===detId);if(!t||!t.subs)return;
+  const sid=+row.dataset.sid;
+  if(e.target.hasAttribute("data-sdel")){t.subs=t.subs.filter(x=>x.id!==sid);if(!t.subs.length)delete t.subs;save();render();return}
+  if(e.target.hasAttribute("data-sc")){const x=t.subs.find(y=>y.id===sid);if(x){x.d=e.target.checked;save();render()}}
+};
+$("detEdit").onclick=()=>{const id=detId;$("dDet").close();openEdit(id)};
 function saveEdit(){
   const t=tasks.find(x=>x.id===editId);if(!t){$("dEdit").close();return}
   const name=$("en").value.trim();if(!name){$("en").focus();return}
@@ -470,12 +522,8 @@ $("remTom").onclick=()=>{const d=new Date();d.setDate(d.getDate()+1);d.setHours(
 $("tb").onclick=e=>{
   const tr=e.target.closest("tr");if(!tr)return;
   const id=+tr.dataset.id;
-  if(e.target.hasAttribute("data-edit")){
-    const t=tasks.find(x=>x.id===id);if(!t)return;
-    editId=id;$("en").value=t.name;$("ec").value=t.category;$("et").value=t.term==="long"?"long":"short";
-    $("ep").value=t.priority;$("es").value=t.spoons;$("est").value=t.status;$("ed").value=t.due||"";$("er").value=toLocalInput(t.remindAt);
-    $("dEdit").showModal();return;
-  }
+  if(e.target.hasAttribute("data-open")){openDet(id);return}
+  if(e.target.hasAttribute("data-edit")){openEdit(id);return}
   if(e.target.hasAttribute("data-bell")){
     const t=tasks.find(x=>x.id===id);if(!t)return;
     remId=id;$("remName").textContent=t.name;$("rmv").value=toLocalInput(t.remindAt);$("dRem").showModal();return;
