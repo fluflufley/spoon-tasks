@@ -142,7 +142,7 @@ table.show-ex .ex{display:block}
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v25</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v26</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -449,8 +449,11 @@ function render(skip){
     const ch={priority:[t=>t.priority,t=>t.spoons,si],spoons:[t=>t.spoons,t=>t.priority,si],status:[si,t=>t.priority,t=>t.spoons],term:[ti,t=>t.priority,t=>t.spoons,si]}[sb];
     list=[...list].sort((a,b)=>{for(const f of ch){const x=f(a)-f(b);if(x)return x*(-dir)}return a.id-b.id});
   }
-  list=[...list.filter(t=>t.kind==="business"),...list.filter(t=>t.kind!=="business")];
-  $("tb").innerHTML=list.length?list.map((t,i)=>`<tr class="${t.status==="Done"?"done":""}${t.kind==="business"?" biz":""}${i>0&&t.kind!=="business"&&list[i-1].kind==="business"?" gs":""}" data-id="${t.id}">
+  // Group order: 0 business + 1 pleasure for tasks that are due now/overdue/undated, then 2 + 3 for tasks due after today.
+  // (An explicit sort by Date keeps its own order, so only the business-first rule applies then.)
+  const grp=t=>(sb!=="due"&&t.due&&t.due>today?2:0)+(t.kind==="business"?0:1);
+  list=[...list].sort((a,b)=>grp(a)-grp(b));
+  $("tb").innerHTML=list.length?list.map((t,i)=>`<tr class="${t.status==="Done"?"done":""}${t.kind==="business"?" biz":""}${i>0&&grp(t)!==grp(list[i-1])?" gs":""}" data-id="${t.id}">
     <td class="n"><span class="nm" data-open title="Open">${esc(t.name)}</span>${subBadge(t)}${t.remindAt?`<div class="rmi${new Date(t.remindAt)<new Date()?" past":""}">🔔 ${fmtRem(t.remindAt)}</div>`:""}</td>
     <td class="c-cat" data-l="Cat."><input class="pill catin" data-f="category" list="cats" value="${esc(t.category)}" style="--h:${catHue(t.category)};width:${Math.max(6,t.category.length+5)}ch"></td>
     <td class="c-term" data-l="Term"><select data-f="term" class="c" style="--h:${(t.term||"short")==="long"?335:175}"><option value="short"${(t.term||"short")==="short"?" selected":""}>Tactical</option><option value="long"${t.term==="long"?" selected":""}>Strategic</option></select></td>
