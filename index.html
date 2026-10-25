@@ -145,8 +145,14 @@ textarea{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(
 .card h3{margin:0 0 8px;font-size:16px}
 .pr{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd)}
 .pr:last-child{border-bottom:0}
+.pr.stc,.hi.stc{--h:0;background:hsl(var(--h) 55% var(--pl));border-left:4px solid hsl(var(--h) 50% var(--bl));color:hsl(var(--h) 50% var(--pt))}
+.pr.stc{border-radius:8px;padding:8px 10px;margin-bottom:6px;border-bottom:0}
+.pr.stc input[type=time]{color:var(--tx)}
 .pr input[type=checkbox]{width:20px;height:20px;padding:0;accent-color:var(--ac);flex:none}
-.pr .pn{flex:1;min-width:0;overflow-wrap:anywhere;cursor:pointer}
+.pr .pn{flex:1 1 90px;min-width:90px;overflow-wrap:break-word;cursor:pointer}
+.pr.stc{display:grid;grid-template-columns:auto 1fr auto;column-gap:10px;row-gap:6px;align-items:center}
+.pr.stc>input[type=checkbox]{grid-area:1/1}.pr.stc>.pn{grid-area:1/2;min-width:0}.pr.stc>.x{grid-area:1/3}
+.pr.stc>.pmeta{grid-area:2/2/3/4;display:flex;align-items:center;gap:8px}
 .pr.dn .pn{text-decoration:line-through;opacity:.55}
 .pr .pm{font-size:12px;font-weight:600;color:var(--sfg);background:hsl(270 60% var(--pl));border-radius:99px;padding:1px 8px;white-space:nowrap}
 .pr .x{padding:2px 8px;line-height:1}
@@ -170,7 +176,7 @@ button.pin{font-size:14px;opacity:.55}
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v32</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v33</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -713,7 +719,7 @@ function renderPlan(){
   $("pLbl").textContent=isNaN(dt)?"":dt.toLocaleDateString([],{weekday:"long",month:"short",day:"numeric"})+(pDay===ymd(new Date())?" · today":"");
   const key=id=>tmin(times[id])==null?1e4:tmin(times[id]);
   const rows=ids.map((id,i)=>[tasks.find(t=>t.id===id),i]).sort((x,y)=>key(x[0].id)-key(y[0].id)||x[1]-y[1]).map(x=>x[0]);
-  $("pList").innerHTML=rows.length?rows.map(t=>`<div class="pr${t.status==="Done"?" dn":""}" data-id="${t.id}"><input type="checkbox" data-pc${t.status==="Done"?" checked":""} title="Mark done"><span class="pn" data-po>${esc(t.name)}</span><input type="time" data-pt value="${times[t.id]||""}" title="Time (optional)"><span class="pm">${t.spoons} \u{1F944}</span><button type="button" class="x" data-px title="Remove from this day">×</button></div>`).join(""):`<div class="sub" style="margin:0">Nothing planned for this day yet.</div>`;
+  $("pList").innerHTML=rows.length?rows.map(t=>`<div class="pr stc${t.status==="Done"?" dn":""}" style="--h:${STH[t.status]}" data-id="${t.id}"><input type="checkbox" data-pc${t.status==="Done"?" checked":""} title="Mark done"><span class="pn" data-po>${esc(t.name)}</span><button type="button" class="x" data-px title="Remove from this day">×</button><div class="pmeta"><input type="time" data-pt value="${times[t.id]||""}" title="Time (optional)"><span class="pm">${t.spoons} \u{1F944}</span></div></div>`).join(""):`<div class="sub" style="margin:0">Nothing planned for this day yet.</div>`;
   const open=rows.filter(t=>t.status!=="Done"),sp=open.reduce((a,t)=>a+(+t.spoons||0),0);
   $("pSum").textContent=rows.length?`${rows.length-open.length} of ${rows.length} done · ${sp} spoon${sp===1?"":"s"} still to spend`:"";
   const av=tasks.filter(t=>t.status!=="Done"&&!ids.includes(t.id)),due=av.filter(t=>t.due===pDay),oth=av.filter(t=>t.due!==pDay);
@@ -721,7 +727,7 @@ function renderPlan(){
   $("pSel").innerHTML=`<option value="">Choose a task…</option>`+(due.length?`<optgroup label="Due this day">${due.map(o).join("")}</optgroup>`:"")+(oth.length?`<optgroup label="Other open tasks">${oth.map(o).join("")}</optgroup>`:"");
   // hourly view
   const items=[];
-  rows.forEach(t=>{const m=tmin(times[t.id]);if(m!=null)items.push({m,html:`<div class="hi${t.status==="Done"?" dn":""}" data-tid="${t.id}"><span class="ht">${times[t.id]}</span><span class="hn" data-ho>${esc(t.name)}</span></div>`})});
+  rows.forEach(t=>{const m=tmin(times[t.id]);if(m!=null)items.push({m,html:`<div class="hi stc${t.status==="Done"?" dn":""}" style="--h:${STH[t.status]}" data-tid="${t.id}"><span class="ht">${times[t.id]}</span><span class="hn" data-ho>${esc(t.name)}</span></div>`})});
   evs.forEach(e=>{const m=tmin(e.time);if(m!=null)items.push({m,html:`<div class="hi ev" data-eid="${e.id}"><span class="ht">${e.time}</span><span class="hn">${esc(e.text)}</span><button type="button" class="x" data-ex title="Remove">×</button></div>`})});
   (d.gcal||[]).forEach(e=>{const m=tmin(e.time);if(m!=null)items.push({m,html:`<div class="hi gc" title="${esc(e.cal||"Google Calendar")}"${e.col?` style="border-left:4px solid ${esc(e.col)}"`:""}><span class="ht">${e.time}${e.end?"\u2013"+e.end:""}</span><span class="hn">${esc(e.text)}</span></div>`})});
   $("pAll").innerHTML=(d.gcal||[]).filter(e=>e.allDay).map(e=>`<span class="hi ad" title="${esc(e.cal||"Google Calendar")} (all day)"${e.col?` style="border-left:4px solid ${esc(e.col)}"`:""}><span class="ht">All day</span><span class="hn">${esc(e.text)}</span></span>`).join("");
