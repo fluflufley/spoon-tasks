@@ -137,12 +137,25 @@ table.show-ex .ex{display:block}
 .chips label:has(input:checked){background:hsl(var(--h) 60% var(--pl));border-color:hsl(var(--h) 50% var(--bl))}
 .chips input{padding:0;margin:0;accent-color:var(--ac)}
 .sum{color:var(--mu);font-size:13px;margin-top:8px}
+
+.tabs{display:flex;gap:6px;margin:0 0 12px}
+.tabs button{flex:1;padding:9px;font-weight:600;color:var(--mu)}
+.tabs button.on{background:var(--ac);border-color:var(--ac);color:#fff}
+textarea{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:9px;width:100%;resize:vertical}
+.card h3{margin:0 0 8px;font-size:16px}
+.pr{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd)}
+.pr:last-child{border-bottom:0}
+.pr input[type=checkbox]{width:20px;height:20px;padding:0;accent-color:var(--ac);flex:none}
+.pr .pn{flex:1;min-width:0;overflow-wrap:anywhere;cursor:pointer}
+.pr.dn .pn{text-decoration:line-through;opacity:.55}
+.pr .pm{font-size:12px;font-weight:600;color:var(--sfg);background:hsl(270 60% var(--pl));border-radius:99px;padding:1px 8px;white-space:nowrap}
+.pr .x{padding:2px 8px;line-height:1}
 </style>
 </head>
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v26</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v27</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -151,6 +164,8 @@ table.show-ex .ex{display:block}
 <label class="grow">Password<input id="pw" type="password" autocomplete="current-password"></label>
 <button class="p" id="si">Sign in</button><button id="su">Create account</button>
 </div><div id="autherr" class="sub" style="margin:8px 0 0;color:#c0392b"></div></div>
+<div class="tabs"><button id="tabT" class="on">Tasks</button><button id="tabP">Daily plan</button></div>
+<div id="vTasks">
 <div class="bar"><button class="p" id="bAdd">+ Add task</button><button id="bImp">Import</button><button id="bSet">⚙ Customize</button></div>
 
 <div class="card row" id="filters">
@@ -175,6 +190,19 @@ table.show-ex .ex{display:block}
 <th class="s c-st" data-k="status">Status ↕</th><th class="c-kind">Type</th><th class="s c-due" data-k="due">Date ↕</th><th></th></tr></thead>
 <tbody id="tb"></tbody></table></div>
 <div class="sum" id="sum"></div>
+</div>
+</div>
+
+<div id="vPlan" hidden>
+<div class="card row" style="align-items:center">
+<button id="pPrev" title="Previous day">‹</button><input type="date" id="pDate"><button id="pNext" title="Next day">›</button><button id="pToday">Today</button>
+<b id="pLbl" style="margin-left:auto"></b></div>
+<div class="card"><h3>Daily tasks</h3>
+<div id="pList"></div>
+<div class="row" style="margin-top:10px"><label class="grow">Add a task to this day<select id="pSel"></select></label><button class="p" id="pAddBtn">Add</button></div>
+<div class="sum" id="pSum"></div></div>
+<div class="card"><h3>Description</h3>
+<textarea id="pDesc" rows="7" placeholder="What happens on this day? Plans, appointments, how you want it to feel…"></textarea></div>
 </div>
 </div>
 
@@ -262,11 +290,11 @@ table.show-ex .ex{display:block}
 <script>
 const STATUSES=["To do","In progress","Waiting","Done"];
 const KEY="spoon-tasks-v1";
-let tasks=[],nextId=1,catHues={},trash=[];
-try{const r=JSON.parse(localStorage.getItem(KEY)||"null");if(r&&Array.isArray(r.tasks)){tasks=r.tasks;nextId=r.nextId||tasks.length+1;catHues=r.catHues||{};trash=Array.isArray(r.trash)?r.trash:[]}}catch(e){}
+let tasks=[],nextId=1,catHues={},trash=[],days={},pDay="",view="tasks";
+try{const r=JSON.parse(localStorage.getItem(KEY)||"null");if(r&&Array.isArray(r.tasks)){tasks=r.tasks;nextId=r.nextId||tasks.length+1;catHues=r.catHues||{};trash=Array.isArray(r.trash)?r.trash:[];days=r.days&&typeof r.days==="object"?r.days:{}}}catch(e){}
 let dbDoc=null,wTimer=null,wBusy=false,wPending=false;
 function setSync(s){const el=document.getElementById("sync");if(el)el.textContent={local:"Saved on this device only",signin:"Not signed in — saved on this device only",saving:"Saving…",saved:"✓ Saved to your account",err:"Couldn't reach your account — saved on this device"}[s]}
-function snap(){return {tasks,nextId,catHues,trash}}
+function snap(){return {tasks,nextId,catHues,trash,days}}
 function save(){
   try{localStorage.setItem(KEY,JSON.stringify(snap()))}catch(e){}
   if(dbDoc){setSync("saving");clearTimeout(wTimer);wTimer=setTimeout(flush,400)}
@@ -350,7 +378,7 @@ async function initStorage(){
         if(s.metadata.hasPendingWrites)return;
         if(s.exists()){
           const d=s.data();
-          tasks=Array.isArray(d.tasks)?d.tasks:[];nextId=d.nextId||tasks.length+1;catHues=d.catHues||{};trash=Array.isArray(d.trash)?d.trash:[];
+          tasks=Array.isArray(d.tasks)?d.tasks:[];nextId=d.nextId||tasks.length+1;catHues=d.catHues||{};trash=Array.isArray(d.trash)?d.trash:[];days=d.days&&typeof d.days==="object"?d.days:{};
           try{localStorage.setItem(KEY,JSON.stringify(snap()))}catch(e){}
           dbDoc={set:x=>F.setDoc(ref,x)};setSync("saved");render();
         }else if(first){
@@ -428,6 +456,7 @@ $("catpanel").onchange=e=>{
 function render(skip){
   renderTrash();
   if(detId!==null&&$("dDet").open)renderDet();
+  renderPlan();
   const cats=[...new Set(tasks.map(t=>t.category))].sort();
   if(!skip)renderCats(cats);
   const fcv=$("fc").value;
@@ -622,6 +651,47 @@ applyCols();
 render();
 initStorage();
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+
+// ---- Daily plan ----
+function planDay(k){return days[k]||(days[k]={ids:[],desc:""})}
+function tidyDay(k){const d=days[k];if(d&&!(d.ids||[]).length&&!(d.desc||"").trim())delete days[k]}
+function renderPlan(){
+  if(!pDay)pDay=ymd(new Date());
+  const d=days[pDay]||{ids:[],desc:""},ids=(d.ids||[]).filter(id=>tasks.some(t=>t.id===id));
+  $("pDate").value=pDay;
+  const dt=new Date(pDay+"T00:00:00");
+  $("pLbl").textContent=isNaN(dt)?"":dt.toLocaleDateString([],{weekday:"long",month:"short",day:"numeric"})+(pDay===ymd(new Date())?" · today":"");
+  const rows=ids.map(id=>tasks.find(t=>t.id===id));
+  $("pList").innerHTML=rows.length?rows.map(t=>`<div class="pr${t.status==="Done"?" dn":""}" data-id="${t.id}"><input type="checkbox" data-pc${t.status==="Done"?" checked":""} title="Mark done"><span class="pn" data-po>${esc(t.name)}</span><span class="pm">${t.spoons} \u{1F944}</span><button type="button" class="x" data-px title="Remove from this day">×</button></div>`).join(""):`<div class="sub" style="margin:0">Nothing planned for this day yet.</div>`;
+  const open=rows.filter(t=>t.status!=="Done"),sp=open.reduce((a,t)=>a+(+t.spoons||0),0);
+  $("pSum").textContent=rows.length?`${rows.length-open.length} of ${rows.length} done · ${sp} spoon${sp===1?"":"s"} still to spend`:"";
+  const av=tasks.filter(t=>t.status!=="Done"&&!ids.includes(t.id)),due=av.filter(t=>t.due===pDay),oth=av.filter(t=>t.due!==pDay);
+  const o=t=>`<option value="${t.id}">${esc(t.name)} (${t.spoons} \u{1F944})</option>`;
+  $("pSel").innerHTML=`<option value="">Choose a task…</option>`+(due.length?`<optgroup label="Due this day">${due.map(o).join("")}</optgroup>`:"")+(oth.length?`<optgroup label="Other open tasks">${oth.map(o).join("")}</optgroup>`:"");
+  if(document.activeElement!==$("pDesc")&&$("pDesc").value!==(d.desc||""))$("pDesc").value=d.desc||"";
+}
+function setView(v){
+  view=v;$("vTasks").hidden=v!=="tasks";$("vPlan").hidden=v!=="plan";
+  $("tabT").classList.toggle("on",v==="tasks");$("tabP").classList.toggle("on",v==="plan");
+  try{localStorage.setItem("spoon-view-v1",v)}catch(e){}
+  if(v==="plan")renderPlan();
+}
+function goDay(k){if(!k)return;pDay=k;renderPlan()}
+$("tabT").onclick=()=>setView("tasks");$("tabP").onclick=()=>setView("plan");
+$("pPrev").onclick=()=>{const d=new Date(pDay+"T00:00:00");d.setDate(d.getDate()-1);goDay(ymd(d))};
+$("pNext").onclick=()=>{const d=new Date(pDay+"T00:00:00");d.setDate(d.getDate()+1);goDay(ymd(d))};
+$("pToday").onclick=()=>goDay(ymd(new Date()));
+$("pDate").onchange=()=>goDay($("pDate").value);
+$("pAddBtn").onclick=()=>{const id=+$("pSel").value;if(!id)return;const d=planDay(pDay);d.ids=d.ids||[];if(!d.ids.includes(id))d.ids.push(id);save();renderPlan()};
+$("pList").onclick=e=>{
+  const row=e.target.closest(".pr");if(!row)return;const id=+row.dataset.id,t=tasks.find(x=>x.id===id);if(!t)return;
+  if(e.target.hasAttribute("data-px")){const d=planDay(pDay);d.ids=d.ids.filter(x=>x!==id);tidyDay(pDay);save();renderPlan();return}
+  if(e.target.hasAttribute("data-pc")){t.status=e.target.checked?"Done":"To do";save();render();return}
+  if(e.target.hasAttribute("data-po"))openDet(id);
+};
+$("pDesc").oninput=()=>{const d=planDay(pDay);d.desc=$("pDesc").value;tidyDay(pDay);save()};
+let _v="tasks";try{_v=localStorage.getItem("spoon-view-v1")||"tasks"}catch(e){}
+setView(_v==="plan"?"plan":"tasks");
 </script>
 </body>
 </html>
