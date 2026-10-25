@@ -74,3 +74,12 @@ A scheduled job on GitHub checks every 5 minutes (GitHub can start it a few minu
 - If the **Actions** tab says workflows are disabled, click **"I understand my workflows, go ahead and enable them"**. Scheduled jobs do not run until Actions is enabled and the `FIREBASE_SERVICE_ACCOUNT` secret exists.
 - GitHub turns off scheduled jobs on a repository with no activity for 60 days. If reminders stop, open the Actions tab and enable the workflow again.
 - A reminder is only sent once per reminder time, and never for tasks marked Done or more than a day late.
+
+## D. Google Calendar sync (optional, read-only)
+The Daily plan page can pull your Google Calendar events into the hourly view. It only reads events and never changes your calendar. One-time setup (about 5 minutes):
+1. Open the [Google Cloud Console](https://console.cloud.google.com/) and select the same project as your Firebase project.
+2. **APIs & Services → Library** → search **Google Calendar API** → **Enable**.
+3. **APIs & Services → OAuth consent screen** (or **Google Auth Platform**): if the app is in **Testing**, add your own Google account under **Test users**. Under **Data Access / Scopes**, add `.../auth/calendar.readonly` if you are asked for scopes.
+4. **APIs & Services → Credentials → Create credentials → OAuth client ID** → type **Web application**. Under **Authorized JavaScript origins** add `https://fluflufley.github.io` (no path, no trailing slash). No redirect URI is needed. Click **Create** and copy the **Client ID**.
+5. In the app: **Daily plan → Hours → Sync Google Calendar** → paste the Client ID → **Save & sync**. Google will ask you to allow read-only access; while the app is in Testing mode it may say "Google hasn't verified this app" — choose **Advanced → Continue**.
+The Client ID is not a secret (it is meant to be public). It is saved to your account, so you only enter it once. After that, tap **Sync Google Calendar** whenever you want fresh events: it refreshes your primary calendar from yesterday through the next 30 days. Synced events appear in blue and cannot be edited here.

@@ -162,12 +162,15 @@ textarea{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(
 .hi .hn{flex:1;min-width:0;overflow-wrap:anywhere;cursor:pointer}
 .hi .x{padding:0 6px;line-height:1.2;margin-left:auto}
 button.pin{font-size:14px;opacity:.55}
+.hi.gc{background:hsl(210 55% var(--pl))}
+.hi.gc .hn{cursor:default}
+.hi.ad{background:hsl(210 55% var(--pl));display:inline-flex;margin:0 6px 6px 0;font-size:13px}
 </style>
 </head>
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v29</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v30</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -216,6 +219,8 @@ button.pin{font-size:14px;opacity:.55}
 <div class="row" style="margin-top:10px"><label class="grow">Add existing task to this day<select id="pSel"></select></label><button class="p" id="pAddBtn">Add</button></div>
 <div class="sum" id="pSum"></div></div>
 <div class="card"><h3>Hours</h3>
+<div class="row" style="margin:0 0 8px;align-items:center"><button id="gSync">↻ Sync Google Calendar</button><a href="#" id="gSet" style="font-size:12px;color:var(--ac)">Setup</a><span class="sub" id="gMsg" style="margin:0;font-size:12px"></span></div>
+<div id="pAll"></div>
 <div id="pHours"></div>
 <div class="row" style="margin-top:10px"><label>Time<input type="time" id="evT" value="09:00"></label><label class="grow">Add an event or note<input id="evX" placeholder="e.g. Doctor, lunch with Dana…"></label><button class="p" id="evAdd">Add</button></div>
 <div class="sub" style="margin:8px 0 0;font-size:12px">Give a task a time in the list above and it shows up here. Tap an hour to fill in its time.</div></div>
@@ -265,8 +270,15 @@ button.pin{font-size:14px;opacity:.55}
 <div class="row"><button type="button" class="p" id="eSave">Save</button><button type="button" data-close>Cancel</button></div>
 </form></div></dialog>
 
+<dialog id="dGcal"><div class="dc">
+<div class="dh"><b>Google Calendar</b><button type="button" class="x" data-close title="Close">×</button></div>
+<p class="sub" style="margin:0 0 10px">Paste your Google OAuth <b>Client ID</b> (one-time setup, see "Google Calendar sync" in SETUP.md). The app only reads your calendar events and never changes them.</p>
+<div class="fcol"><label>Client ID<input id="gcId" placeholder="123456-abc.apps.googleusercontent.com" autocomplete="off"></label>
+<div class="row"><button type="button" class="p" id="gcSave">Save &amp; sync</button><button type="button" id="gcClear">Disconnect</button><button type="button" data-close>Cancel</button></div></div>
+</div></dialog>
+
 <dialog id="dPin"><div class="dc">
-<div class="dh"><b>Pin to a day</b><button type="button" class="x" data-close title="Close">\u00D7</button></div>
+<div class="dh"><b>Pin to a day</b><button type="button" class="x" data-close title="Close">×</button></div>
 <p class="sub" id="pinName" style="margin:0 0 10px"></p>
 <div class="fcol">
 <div class="row"><label>Day<input type="date" id="pinD"></label><label>Time (optional)<input type="time" id="pinT"></label></div>
@@ -318,12 +330,12 @@ button.pin{font-size:14px;opacity:.55}
 <script>
 const STATUSES=["To do","In progress","Waiting","Done"];
 const KEY="spoon-tasks-v1";
-let planAfterAdd=null,pinId=null;
+let planAfterAdd=null,pinId=null,gcalClient="";
 let tasks=[],nextId=1,catHues={},trash=[],days={},pDay="",view="tasks";
-try{const r=JSON.parse(localStorage.getItem(KEY)||"null");if(r&&Array.isArray(r.tasks)){tasks=r.tasks;nextId=r.nextId||tasks.length+1;catHues=r.catHues||{};trash=Array.isArray(r.trash)?r.trash:[];days=r.days&&typeof r.days==="object"?r.days:{}}}catch(e){}
+try{const r=JSON.parse(localStorage.getItem(KEY)||"null");if(r&&Array.isArray(r.tasks)){tasks=r.tasks;nextId=r.nextId||tasks.length+1;catHues=r.catHues||{};trash=Array.isArray(r.trash)?r.trash:[];days=r.days&&typeof r.days==="object"?r.days:{};gcalClient=r.gcalClient||""}}catch(e){}
 let dbDoc=null,wTimer=null,wBusy=false,wPending=false;
 function setSync(s){const el=document.getElementById("sync");if(el)el.textContent={local:"Saved on this device only",signin:"Not signed in — saved on this device only",saving:"Saving…",saved:"✓ Saved to your account",err:"Couldn't reach your account — saved on this device"}[s]}
-function snap(){return {tasks,nextId,catHues,trash,days}}
+function snap(){return {tasks,nextId,catHues,trash,days,gcalClient}}
 function save(){
   try{localStorage.setItem(KEY,JSON.stringify(snap()))}catch(e){}
   if(dbDoc){setSync("saving");clearTimeout(wTimer);wTimer=setTimeout(flush,400)}
@@ -407,7 +419,7 @@ async function initStorage(){
         if(s.metadata.hasPendingWrites)return;
         if(s.exists()){
           const d=s.data();
-          tasks=Array.isArray(d.tasks)?d.tasks:[];nextId=d.nextId||tasks.length+1;catHues=d.catHues||{};trash=Array.isArray(d.trash)?d.trash:[];days=d.days&&typeof d.days==="object"?d.days:{};
+          tasks=Array.isArray(d.tasks)?d.tasks:[];nextId=d.nextId||tasks.length+1;catHues=d.catHues||{};trash=Array.isArray(d.trash)?d.trash:[];days=d.days&&typeof d.days==="object"?d.days:{};gcalClient=d.gcalClient||"";
           try{localStorage.setItem(KEY,JSON.stringify(snap()))}catch(e){}
           dbDoc={set:x=>F.setDoc(ref,x)};setSync("saved");render();
         }else if(first){
@@ -687,7 +699,7 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(
 
 // ---- Daily plan ----
 function planDay(k){const d=days[k]||(days[k]={ids:[],desc:""});if(!Array.isArray(d.ids))d.ids=[];return d}
-function tidyDay(k){const d=days[k];if(d&&!(d.ids||[]).length&&!(d.ev||[]).length&&!(d.desc||"").trim())delete days[k]}
+function tidyDay(k){const d=days[k];if(d&&!(d.ids||[]).length&&!(d.ev||[]).length&&!(d.gcal||[]).length&&!(d.desc||"").trim())delete days[k]}
 function tmin(v){const m=/^(\d\d):(\d\d)$/.exec(v||"");return m?+m[1]*60+ +m[2]:null}
 function renderPlan(){
   if(!pDay)pDay=ymd(new Date());
@@ -708,6 +720,8 @@ function renderPlan(){
   const items=[];
   rows.forEach(t=>{const m=tmin(times[t.id]);if(m!=null)items.push({m,html:`<div class="hi${t.status==="Done"?" dn":""}" data-tid="${t.id}"><span class="ht">${times[t.id]}</span><span class="hn" data-ho>${esc(t.name)}</span></div>`})});
   evs.forEach(e=>{const m=tmin(e.time);if(m!=null)items.push({m,html:`<div class="hi ev" data-eid="${e.id}"><span class="ht">${e.time}</span><span class="hn">${esc(e.text)}</span><button type="button" class="x" data-ex title="Remove">×</button></div>`})});
+  (d.gcal||[]).forEach(e=>{const m=tmin(e.time);if(m!=null)items.push({m,html:`<div class="hi gc" title="From Google Calendar"><span class="ht">${e.time}${e.end?"\u2013"+e.end:""}</span><span class="hn">${esc(e.text)}</span></div>`})});
+  $("pAll").innerHTML=(d.gcal||[]).filter(e=>e.allDay).map(e=>`<span class="hi ad" title="From Google Calendar (all day)"><span class="ht">All day</span><span class="hn">${esc(e.text)}</span></span>`).join("");
   let lo=6,hi=23;items.forEach(x=>{const h=Math.floor(x.m/60);if(h<lo)lo=h;if(h>hi)hi=h});
   let h="";for(let hr=lo;hr<=hi;hr++){
     const its=items.filter(x=>Math.floor(x.m/60)===hr).sort((a,b)=>a.m-b.m);
@@ -716,6 +730,63 @@ function renderPlan(){
   $("pHours").innerHTML=h;
   if(document.activeElement!==$("pDesc")&&$("pDesc").value!==(d.desc||""))$("pDesc").value=d.desc||"";
 }
+// ---- Google Calendar (read-only) ----
+let gTok=null,gTokExp=0,gsiP=null;
+function gMsg(t,err){const el=$("gMsg");el.textContent=t||"";el.style.color=err?"#c0392b":""}
+function showGLast(){let t="";try{t=localStorage.getItem("spoon-gcal-at")||""}catch(e){}if(t&&gcalClient)gMsg("Last synced "+new Date(+t).toLocaleString([],{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}))}
+function loadGsi(){return gsiP||(gsiP=new Promise((res,rej)=>{const e=document.createElement("script");e.src="https://accounts.google.com/gsi/client";e.onload=res;e.onerror=()=>{gsiP=null;rej(new Error("Couldn't load Google sign-in (check your connection)"))};document.head.appendChild(e)}))}
+async function gToken(){
+  if(gTok&&Date.now()<gTokExp)return gTok;
+  await loadGsi();
+  return new Promise((res,rej)=>{
+    const c=google.accounts.oauth2.initTokenClient({client_id:gcalClient,scope:"https://www.googleapis.com/auth/calendar.readonly",
+      callback:r=>{if(r.error)return rej(new Error(r.error_description||r.error));gTok=r.access_token;gTokExp=Date.now()+((+r.expires_in||3600)-60)*1000;res(gTok)},
+      error_callback:e=>rej(new Error(e&&e.type==="popup_closed"?"Sign-in was closed":e&&e.type==="popup_failed_to_open"?"The sign-in popup was blocked":"Couldn't sign in to Google"))});
+    c.requestAccessToken();
+  });
+}
+async function syncCal(){
+  if(!gcalClient){$("gcId").value="";$("dGcal").showModal();return}
+  const btn=$("gSync");btn.disabled=true;gMsg("Syncing\u2026");
+  try{
+    const a=new Date();a.setHours(0,0,0,0);a.setDate(a.getDate()-1);
+    const p0=new Date(pDay+"T00:00:00");if(!isNaN(p0)&&p0<a){a.setTime(p0.getTime())}
+    const e=new Date();e.setHours(0,0,0,0);e.setDate(e.getDate()+32);
+    const p1=new Date(pDay+"T00:00:00");if(!isNaN(p1)&&p1>=e){e.setTime(p1.getTime());e.setDate(e.getDate()+8)}
+    const k0=ymd(a),k1=ymd(e),evs=[];let tok=await gToken(),pageTok="",n=0;
+    do{
+      const u="https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&maxResults=250&timeMin="+encodeURIComponent(a.toISOString())+"&timeMax="+encodeURIComponent(e.toISOString())+(pageTok?"&pageToken="+encodeURIComponent(pageTok):"");
+      const r=await fetch(u,{headers:{Authorization:"Bearer "+tok}});
+      if(r.status===401){gTok=null;throw new Error("Google sign-in expired \u2014 tap sync again")}
+      if(r.status===403){throw new Error("Google refused: make sure the Google Calendar API is enabled (see SETUP.md)")}
+      if(!r.ok)throw new Error("Google Calendar error "+r.status);
+      const j=await r.json();evs.push(...(j.items||[]));pageTok=j.nextPageToken||"";n++;
+    }while(pageTok&&n<6);
+    for(const k of Object.keys(days)){if(k>=k0&&k<k1&&days[k].gcal){delete days[k].gcal}}
+    const put=(k,o)=>{if(k<k0||k>=k1)return;const d=planDay(k);(d.gcal=d.gcal||[]).push(o)};
+    let cnt=0;
+    for(const v of evs){
+      if(v.status==="cancelled"||!v.start)continue;
+      const text=v.summary||"(no title)";cnt++;
+      if(v.start.date){
+        const d=new Date(v.start.date+"T00:00:00"),end=new Date((v.end&&v.end.date||v.start.date)+"T00:00:00");let i=0;
+        do{put(ymd(d),{id:v.id,text,allDay:true});d.setDate(d.getDate()+1);i++}while(d<end&&i<14);
+      }else if(v.start.dateTime){
+        const s=new Date(v.start.dateTime),en=v.end&&v.end.dateTime?new Date(v.end.dateTime):null;
+        put(ymd(s),{id:v.id,text,time:pad(s.getHours())+":"+pad(s.getMinutes()),end:en&&ymd(en)===ymd(s)?pad(en.getHours())+":"+pad(en.getMinutes()):""});
+      }
+    }
+    for(const k of Object.keys(days))tidyDay(k);
+    try{localStorage.setItem("spoon-gcal-at",String(Date.now()))}catch(x){}
+    save();renderPlan();gMsg("Synced "+cnt+" event"+(cnt===1?"":"s")+" \u00B7 "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}));
+  }catch(err){gMsg(err.message||"Couldn't sync",true)}
+  btn.disabled=false;
+}
+$("gSync").onclick=syncCal;
+$("gSet").onclick=ev=>{ev.preventDefault();$("gcId").value=gcalClient;$("dGcal").showModal()};
+$("gcSave").onclick=()=>{const v=$("gcId").value.trim();if(!v){$("gcId").focus();return}gcalClient=v;gTok=null;save();$("dGcal").close();syncCal()};
+$("gcClear").onclick=()=>{gcalClient="";gTok=null;for(const k of Object.keys(days)){delete days[k].gcal;tidyDay(k)}save();renderPlan();gMsg("");$("dGcal").close()};
+showGLast();
 function setView(v){
   view=v;$("vTasks").hidden=v!=="tasks";$("vPlan").hidden=v!=="plan";
   $("tabT").classList.toggle("on",v==="tasks");$("tabP").classList.toggle("on",v==="plan");
