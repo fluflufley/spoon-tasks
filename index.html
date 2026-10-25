@@ -170,7 +170,7 @@ button.pin{font-size:14px;opacity:.55}
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v30</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v31</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -274,6 +274,9 @@ button.pin{font-size:14px;opacity:.55}
 <div class="dh"><b>Google Calendar</b><button type="button" class="x" data-close title="Close">×</button></div>
 <p class="sub" style="margin:0 0 10px">Paste your Google OAuth <b>Client ID</b> (one-time setup, see "Google Calendar sync" in SETUP.md). The app only reads your calendar events and never changes them.</p>
 <div class="fcol"><label>Client ID<input id="gcId" placeholder="123456-abc.apps.googleusercontent.com" autocomplete="off"></label>
+<div><div style="font-size:12px;color:var(--mu);margin-bottom:4px">Calendars to include <span id="gcHint">(your main calendar until you choose)</span></div>
+<div id="gcList"></div>
+<button type="button" id="gcLoad" style="margin-top:6px">Load my calendars</button></div>
 <div class="row"><button type="button" class="p" id="gcSave">Save &amp; sync</button><button type="button" id="gcClear">Disconnect</button><button type="button" data-close>Cancel</button></div></div>
 </div></dialog>
 
@@ -330,12 +333,12 @@ button.pin{font-size:14px;opacity:.55}
 <script>
 const STATUSES=["To do","In progress","Waiting","Done"];
 const KEY="spoon-tasks-v1";
-let planAfterAdd=null,pinId=null,gcalClient="";
+let planAfterAdd=null,pinId=null,gcalClient="",gcalList=[],gcalSel=[];
 let tasks=[],nextId=1,catHues={},trash=[],days={},pDay="",view="tasks";
-try{const r=JSON.parse(localStorage.getItem(KEY)||"null");if(r&&Array.isArray(r.tasks)){tasks=r.tasks;nextId=r.nextId||tasks.length+1;catHues=r.catHues||{};trash=Array.isArray(r.trash)?r.trash:[];days=r.days&&typeof r.days==="object"?r.days:{};gcalClient=r.gcalClient||""}}catch(e){}
+try{const r=JSON.parse(localStorage.getItem(KEY)||"null");if(r&&Array.isArray(r.tasks)){tasks=r.tasks;nextId=r.nextId||tasks.length+1;catHues=r.catHues||{};trash=Array.isArray(r.trash)?r.trash:[];days=r.days&&typeof r.days==="object"?r.days:{};gcalClient=r.gcalClient||"";gcalList=Array.isArray(r.gcalList)?r.gcalList:[];gcalSel=Array.isArray(r.gcalSel)?r.gcalSel:[]}}catch(e){}
 let dbDoc=null,wTimer=null,wBusy=false,wPending=false;
 function setSync(s){const el=document.getElementById("sync");if(el)el.textContent={local:"Saved on this device only",signin:"Not signed in — saved on this device only",saving:"Saving…",saved:"✓ Saved to your account",err:"Couldn't reach your account — saved on this device"}[s]}
-function snap(){return {tasks,nextId,catHues,trash,days,gcalClient}}
+function snap(){return {tasks,nextId,catHues,trash,days,gcalClient,gcalList,gcalSel}}
 function save(){
   try{localStorage.setItem(KEY,JSON.stringify(snap()))}catch(e){}
   if(dbDoc){setSync("saving");clearTimeout(wTimer);wTimer=setTimeout(flush,400)}
@@ -419,7 +422,7 @@ async function initStorage(){
         if(s.metadata.hasPendingWrites)return;
         if(s.exists()){
           const d=s.data();
-          tasks=Array.isArray(d.tasks)?d.tasks:[];nextId=d.nextId||tasks.length+1;catHues=d.catHues||{};trash=Array.isArray(d.trash)?d.trash:[];days=d.days&&typeof d.days==="object"?d.days:{};gcalClient=d.gcalClient||"";
+          tasks=Array.isArray(d.tasks)?d.tasks:[];nextId=d.nextId||tasks.length+1;catHues=d.catHues||{};trash=Array.isArray(d.trash)?d.trash:[];days=d.days&&typeof d.days==="object"?d.days:{};gcalClient=d.gcalClient||"";gcalList=Array.isArray(d.gcalList)?d.gcalList:[];gcalSel=Array.isArray(d.gcalSel)?d.gcalSel:[];
           try{localStorage.setItem(KEY,JSON.stringify(snap()))}catch(e){}
           dbDoc={set:x=>F.setDoc(ref,x)};setSync("saved");render();
         }else if(first){
@@ -720,8 +723,8 @@ function renderPlan(){
   const items=[];
   rows.forEach(t=>{const m=tmin(times[t.id]);if(m!=null)items.push({m,html:`<div class="hi${t.status==="Done"?" dn":""}" data-tid="${t.id}"><span class="ht">${times[t.id]}</span><span class="hn" data-ho>${esc(t.name)}</span></div>`})});
   evs.forEach(e=>{const m=tmin(e.time);if(m!=null)items.push({m,html:`<div class="hi ev" data-eid="${e.id}"><span class="ht">${e.time}</span><span class="hn">${esc(e.text)}</span><button type="button" class="x" data-ex title="Remove">×</button></div>`})});
-  (d.gcal||[]).forEach(e=>{const m=tmin(e.time);if(m!=null)items.push({m,html:`<div class="hi gc" title="From Google Calendar"><span class="ht">${e.time}${e.end?"\u2013"+e.end:""}</span><span class="hn">${esc(e.text)}</span></div>`})});
-  $("pAll").innerHTML=(d.gcal||[]).filter(e=>e.allDay).map(e=>`<span class="hi ad" title="From Google Calendar (all day)"><span class="ht">All day</span><span class="hn">${esc(e.text)}</span></span>`).join("");
+  (d.gcal||[]).forEach(e=>{const m=tmin(e.time);if(m!=null)items.push({m,html:`<div class="hi gc" title="${esc(e.cal||"Google Calendar")}"${e.col?` style="border-left:4px solid ${esc(e.col)}"`:""}><span class="ht">${e.time}${e.end?"\u2013"+e.end:""}</span><span class="hn">${esc(e.text)}</span></div>`})});
+  $("pAll").innerHTML=(d.gcal||[]).filter(e=>e.allDay).map(e=>`<span class="hi ad" title="${esc(e.cal||"Google Calendar")} (all day)"${e.col?` style="border-left:4px solid ${esc(e.col)}"`:""}><span class="ht">All day</span><span class="hn">${esc(e.text)}</span></span>`).join("");
   let lo=6,hi=23;items.forEach(x=>{const h=Math.floor(x.m/60);if(h<lo)lo=h;if(h>hi)hi=h});
   let h="";for(let hr=lo;hr<=hi;hr++){
     const its=items.filter(x=>Math.floor(x.m/60)===hr).sort((a,b)=>a.m-b.m);
@@ -753,39 +756,69 @@ async function syncCal(){
     const p0=new Date(pDay+"T00:00:00");if(!isNaN(p0)&&p0<a){a.setTime(p0.getTime())}
     const e=new Date();e.setHours(0,0,0,0);e.setDate(e.getDate()+32);
     const p1=new Date(pDay+"T00:00:00");if(!isNaN(p1)&&p1>=e){e.setTime(p1.getTime());e.setDate(e.getDate()+8)}
-    const k0=ymd(a),k1=ymd(e),evs=[];let tok=await gToken(),pageTok="",n=0;
-    do{
-      const u="https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&maxResults=250&timeMin="+encodeURIComponent(a.toISOString())+"&timeMax="+encodeURIComponent(e.toISOString())+(pageTok?"&pageToken="+encodeURIComponent(pageTok):"");
-      const r=await fetch(u,{headers:{Authorization:"Bearer "+tok}});
-      if(r.status===401){gTok=null;throw new Error("Google sign-in expired \u2014 tap sync again")}
-      if(r.status===403){throw new Error("Google refused: make sure the Google Calendar API is enabled (see SETUP.md)")}
-      if(!r.ok)throw new Error("Google Calendar error "+r.status);
-      const j=await r.json();evs.push(...(j.items||[]));pageTok=j.nextPageToken||"";n++;
-    }while(pageTok&&n<6);
+    const k0=ymd(a),k1=ymd(e),evs=[],bad=[];let tok=await gToken();
+    const ids=gcalSel.length?gcalSel:["primary"];
+    for(const cid of ids){
+      const info=gcalList.find(x=>x.id===cid)||{},cname=info.name||(cid==="primary"?"":cid),col=info.color||"";
+      let pageTok="",n=0;
+      try{
+        do{
+          const u="https://www.googleapis.com/calendar/v3/calendars/"+encodeURIComponent(cid)+"/events?singleEvents=true&orderBy=startTime&maxResults=250&timeMin="+encodeURIComponent(a.toISOString())+"&timeMax="+encodeURIComponent(e.toISOString())+(pageTok?"&pageToken="+encodeURIComponent(pageTok):"");
+          const r=await fetch(u,{headers:{Authorization:"Bearer "+tok}});
+          if(r.status===401){gTok=null;throw new Error("Google sign-in expired — tap sync again")}
+          if(r.status===403&&ids.length===1)throw new Error("Google refused: make sure the Google Calendar API is enabled (see SETUP.md)");
+          if(!r.ok){bad.push(cname||cid);break}
+          const j=await r.json();(j.items||[]).forEach(v=>evs.push({v,cname,col}));pageTok=j.nextPageToken||"";n++;
+        }while(pageTok&&n<6);
+      }catch(err){if(/expired|refused/.test(err.message))throw err;bad.push(cname||cid)}
+    }
     for(const k of Object.keys(days)){if(k>=k0&&k<k1&&days[k].gcal){delete days[k].gcal}}
     const put=(k,o)=>{if(k<k0||k>=k1)return;const d=planDay(k);(d.gcal=d.gcal||[]).push(o)};
     let cnt=0;
-    for(const v of evs){
+    for(const {v,cname,col} of evs){
       if(v.status==="cancelled"||!v.start)continue;
       const text=v.summary||"(no title)";cnt++;
       if(v.start.date){
         const d=new Date(v.start.date+"T00:00:00"),end=new Date((v.end&&v.end.date||v.start.date)+"T00:00:00");let i=0;
-        do{put(ymd(d),{id:v.id,text,allDay:true});d.setDate(d.getDate()+1);i++}while(d<end&&i<14);
+        do{put(ymd(d),{id:v.id,text,allDay:true,cal:cname,col});d.setDate(d.getDate()+1);i++}while(d<end&&i<14);
       }else if(v.start.dateTime){
         const s=new Date(v.start.dateTime),en=v.end&&v.end.dateTime?new Date(v.end.dateTime):null;
-        put(ymd(s),{id:v.id,text,time:pad(s.getHours())+":"+pad(s.getMinutes()),end:en&&ymd(en)===ymd(s)?pad(en.getHours())+":"+pad(en.getMinutes()):""});
+        put(ymd(s),{id:v.id,text,time:pad(s.getHours())+":"+pad(s.getMinutes()),end:en&&ymd(en)===ymd(s)?pad(en.getHours())+":"+pad(en.getMinutes()):"",cal:cname,col});
       }
     }
     for(const k of Object.keys(days))tidyDay(k);
     try{localStorage.setItem("spoon-gcal-at",String(Date.now()))}catch(x){}
-    save();renderPlan();gMsg("Synced "+cnt+" event"+(cnt===1?"":"s")+" \u00B7 "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}));
+    save();renderPlan();gMsg("Synced "+cnt+" event"+(cnt===1?"":"s")+" \u00B7 "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})+(bad.length?" \u00B7 couldn't read: "+bad.join(", "):""));
   }catch(err){gMsg(err.message||"Couldn't sync",true)}
   btn.disabled=false;
 }
+function renderGcList(pre){
+  const sel=pre||(gcalSel.length?gcalSel:(gcalList.filter(x=>x.primary).map(x=>x.id)));
+  $("gcList").innerHTML=gcalList.length?gcalList.map(c=>`<label style="flex-direction:row;align-items:center;gap:8px;color:var(--tx);font-size:14px;padding:3px 0"><input type="checkbox" data-cal="${esc(c.id)}"${sel.includes(c.id)?" checked":""} style="padding:0"><span style="width:10px;height:10px;border-radius:50%;flex:none;background:${esc(c.color||"#888")}"></span><span style="overflow-wrap:anywhere">${esc(c.name)}</span></label>`).join(""):"";
+  $("gcLoad").textContent=gcalList.length?"Reload my calendars":"Load my calendars";
+}
+async function loadCals(){
+  const id=$("gcId").value.trim();if(!id){$("gcId").focus();return}
+  if(id!==gcalClient){gcalClient=id;gTok=null}
+  const b=$("gcLoad");b.disabled=true;$("gcHint").textContent="(loading…)";
+  try{
+    const tok=await gToken();
+    const r=await fetch("https://www.googleapis.com/calendar/v3/users/me/calendarList?minAccessRole=reader&maxResults=250",{headers:{Authorization:"Bearer "+tok}});
+    if(r.status===401)gTok=null;
+    if(!r.ok)throw new Error(r.status===403?"Google refused: make sure the Google Calendar API is enabled":"Google Calendar error "+r.status);
+    const j=await r.json(),keep=new Set(gcalSel);
+    gcalList=(j.items||[]).map(c=>({id:c.id,name:c.summaryOverride||c.summary||c.id,color:c.backgroundColor||"",primary:!!c.primary}));
+    renderGcList(gcalSel.length?gcalSel.filter(x=>gcalList.some(c=>c.id===x)):null);$("gcHint").textContent="(tick the ones to show)";
+  }catch(err){$("gcHint").textContent="("+(err.message||"couldn't load")+")"}
+  b.disabled=false;
+}
+$("gcLoad").onclick=loadCals;
 $("gSync").onclick=syncCal;
-$("gSet").onclick=ev=>{ev.preventDefault();$("gcId").value=gcalClient;$("dGcal").showModal()};
-$("gcSave").onclick=()=>{const v=$("gcId").value.trim();if(!v){$("gcId").focus();return}gcalClient=v;gTok=null;save();$("dGcal").close();syncCal()};
-$("gcClear").onclick=()=>{gcalClient="";gTok=null;for(const k of Object.keys(days)){delete days[k].gcal;tidyDay(k)}save();renderPlan();gMsg("");$("dGcal").close()};
+$("gSet").onclick=ev=>{ev.preventDefault();$("gcId").value=gcalClient;renderGcList();$("gcHint").textContent=gcalList.length?"(tick the ones to show)":"(your main calendar until you choose)";$("dGcal").showModal()};
+$("gcSave").onclick=()=>{const v=$("gcId").value.trim();if(!v){$("gcId").focus();return}if(v!==gcalClient){gcalClient=v;gTok=null}
+  if(gcalList.length){gcalSel=[...$("gcList").querySelectorAll("input:checked")].map(i=>i.dataset.cal);if(!gcalSel.length){$("gcHint").textContent="(tick at least one)";return}}
+  save();$("dGcal").close();syncCal()};
+$("gcClear").onclick=()=>{gcalClient="";gcalList=[];gcalSel=[];gTok=null;for(const k of Object.keys(days)){delete days[k].gcal;tidyDay(k)}save();renderPlan();gMsg("");$("dGcal").close()};
 showGLast();
 function setView(v){
   view=v;$("vTasks").hidden=v!=="tasks";$("vPlan").hidden=v!=="plan";
