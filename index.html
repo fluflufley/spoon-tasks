@@ -152,6 +152,11 @@ textarea{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(
 .pr .pn{flex:1 1 90px;min-width:90px;overflow-wrap:break-word;cursor:pointer}
 .pr.stc{display:grid;grid-template-columns:auto 1fr auto;column-gap:10px;row-gap:6px;align-items:center}
 .pr.stc>input[type=checkbox]{grid-area:1/1}.pr.stc>.pn{grid-area:1/2;min-width:0}.pr.stc>.x{grid-area:1/3}
+.ghd td{font-size:12px;font-weight:700;color:var(--mu);padding:12px 6px 4px;letter-spacing:.03em;text-transform:uppercase}
+tr.tm{background:color-mix(in srgb,hsl(205 75% 52%) 13%,transparent)}
+tr.tm .ptime input{border-color:hsl(205 60% 55%)}
+tr.ut{background:color-mix(in srgb,hsl(35 25% 50%) 6%,transparent)}
+@media (max-width:640px){tbody tr.ghd{display:block;border:0;padding:10px 4px 2px}tbody tr.tm,tbody tr.ut{border-radius:10px;margin-bottom:6px;padding-left:10px;padding-right:10px}}
 .ptime{margin-top:3px;font-weight:400}.ptime input{padding:2px 4px;font-size:13px;width:112px}
 .pr.stc>.pmeta{grid-area:2/2/3/4;display:flex;align-items:center;gap:8px}
 .pr.dn .pn{text-decoration:line-through;opacity:.55}
@@ -177,7 +182,7 @@ button.pin{font-size:14px;opacity:.55}
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v35</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v36</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -736,7 +741,9 @@ function renderPlan(){
   $("pLbl").textContent=isNaN(dt)?"":dt.toLocaleDateString([],{weekday:"long",month:"short",day:"numeric"})+(pDay===ymd(new Date())?" · today":"");
   const key=id=>tmin(times[id])==null?1e4:tmin(times[id]);
   const rows=ids.map((id,i)=>[tasks.find(t=>t.id===id),i]).sort((x,y)=>key(x[0].id)-key(y[0].id)||(x[0].kind==="business"?0:1)-(y[0].kind==="business"?0:1)||x[0].priority-y[0].priority||x[0].spoons-y[0].spoons||x[1]-y[1]).map(x=>x[0]);
-  $("pb").innerHTML=rows.length?rows.map(t=>rowHTML(t,"",{plan:1,time:times[t.id]||""})).join(""):`<tr><td colspan="8" class="empty">Nothing planned for this day yet.</td></tr>`;
+  const hasT=t=>tmin(times[t.id])!=null,tm=rows.filter(hasT),ut=rows.filter(t=>!hasT(t));
+  const grp=(label,arr,c)=>arr.length?`<tr class="ghd"><td colspan="9">${label} <span style="font-weight:400">\u00B7 ${arr.length}</span></td></tr>`+arr.map(t=>rowHTML(t,c,{plan:1,time:times[t.id]||""})).join(""):"";
+  $("pb").innerHTML=rows.length?grp("\u23F0 At a set time",tm," tm")+grp("No time set",ut," ut"):`<tr><td colspan="8" class="empty">Nothing planned for this day yet.</td></tr>`;
   const open=rows.filter(t=>t.status!=="Done"),sp=open.reduce((a,t)=>a+(+t.spoons||0),0);
   $("pSum").textContent=rows.length?`${rows.length-open.length} of ${rows.length} done · ${sp} spoon${sp===1?"":"s"} still to spend`:"";
   const av=tasks.filter(t=>t.status!=="Done"&&!ids.includes(t.id)),due=av.filter(t=>t.due===pDay),oth=av.filter(t=>t.due!==pDay);
