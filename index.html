@@ -150,12 +150,24 @@ textarea{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(
 .pr.dn .pn{text-decoration:line-through;opacity:.55}
 .pr .pm{font-size:12px;font-weight:600;color:var(--sfg);background:hsl(270 60% var(--pl));border-radius:99px;padding:1px 8px;white-space:nowrap}
 .pr .x{padding:2px 8px;line-height:1}
+.pr input[type=time]{width:112px;flex:none;padding:3px 4px;font-size:12px}
+.hr{display:flex;gap:10px;padding:6px 0;border-top:1px solid var(--bd);min-height:34px}
+.hr:first-child{border-top:0}
+.hr .hl{width:48px;flex:none;font-size:12px;color:var(--mu);background:none;border:0;padding:2px 0;text-align:left}
+.hr .hb{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.hi{display:flex;align-items:center;gap:6px;font-size:14px;background:var(--ac2);border-radius:8px;padding:4px 8px}
+.hi.ev{background:hsl(40 70% var(--pl))}
+.hi.dn{text-decoration:line-through;opacity:.55}
+.hi .ht{font-size:12px;color:var(--mu);flex:none}
+.hi .hn{flex:1;min-width:0;overflow-wrap:anywhere;cursor:pointer}
+.hi .x{padding:0 6px;line-height:1.2;margin-left:auto}
+button.pin{font-size:14px;opacity:.55}
 </style>
 </head>
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v27</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v28</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -199,8 +211,13 @@ textarea{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(
 <b id="pLbl" style="margin-left:auto"></b></div>
 <div class="card"><h3>Daily tasks</h3>
 <div id="pList"></div>
-<div class="row" style="margin-top:10px"><label class="grow">Add a task to this day<select id="pSel"></select></label><button class="p" id="pAddBtn">Add</button></div>
+<div class="row" style="margin-top:10px"><button id="pNew">+ New task</button></div>
+<div class="row" style="margin-top:10px"><label class="grow">Add existing task to this day<select id="pSel"></select></label><button class="p" id="pAddBtn">Add</button></div>
 <div class="sum" id="pSum"></div></div>
+<div class="card"><h3>Hours</h3>
+<div id="pHours"></div>
+<div class="row" style="margin-top:10px"><label>Time<input type="time" id="evT" value="09:00"></label><label class="grow">Add an event or note<input id="evX" placeholder="e.g. Doctor, lunch with Dana…"></label><button class="p" id="evAdd">Add</button></div>
+<div class="sub" style="margin:8px 0 0;font-size:12px">Give a task a time in the list above and it shows up here. Tap an hour to fill in its time.</div></div>
 <div class="card"><h3>Description</h3>
 <textarea id="pDesc" rows="7" placeholder="What happens on this day? Plans, appointments, how you want it to feel…"></textarea></div>
 </div>
@@ -209,7 +226,7 @@ textarea{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(
 <datalist id="cats"></datalist>
 
 <dialog id="dAdd"><div class="dc">
-<div class="dh"><b>Add task</b><button type="button" class="x" data-close title="Close">×</button></div>
+<div class="dh"><b id="addTitle">Add task</b><button type="button" class="x" data-close title="Close">×</button></div>
 <form id="f" class="fcol" onsubmit="return false">
 <label>Task<input id="name" placeholder="What needs doing?"></label>
 <label>Category<input id="cat" list="cats" placeholder="e.g. Home"></label>
@@ -246,6 +263,16 @@ textarea{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(
 <label>Reminder (optional)<input type="datetime-local" id="er"></label>
 <div class="row"><button type="button" class="p" id="eSave">Save</button><button type="button" data-close>Cancel</button></div>
 </form></div></dialog>
+
+<dialog id="dPin"><div class="dc">
+<div class="dh"><b>Pin to a day</b><button type="button" class="x" data-close title="Close">\u00D7</button></div>
+<p class="sub" id="pinName" style="margin:0 0 10px"></p>
+<div class="fcol">
+<div class="row"><label>Day<input type="date" id="pinD"></label><label>Time (optional)<input type="time" id="pinT"></label></div>
+<div class="row"><button type="button" id="pinToday">Today</button><button type="button" id="pinTom">Tomorrow</button></div>
+<div class="row"><button type="button" class="p" id="pinSave">Pin</button><button type="button" data-close>Cancel</button></div>
+<div id="pinList"></div>
+</div></div></dialog>
 
 <dialog id="dRem"><div class="dc">
 <div class="dh"><b>Reminder</b><button type="button" class="x" data-close title="Close">×</button></div>
@@ -290,6 +317,7 @@ textarea{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(
 <script>
 const STATUSES=["To do","In progress","Waiting","Done"];
 const KEY="spoon-tasks-v1";
+let planAfterAdd=null,pinId=null;
 let tasks=[],nextId=1,catHues={},trash=[],days={},pDay="",view="tasks";
 try{const r=JSON.parse(localStorage.getItem(KEY)||"null");if(r&&Array.isArray(r.tasks)){tasks=r.tasks;nextId=r.nextId||tasks.length+1;catHues=r.catHues||{};trash=Array.isArray(r.trash)?r.trash:[];days=r.days&&typeof r.days==="object"?r.days:{}}}catch(e){}
 let dbDoc=null,wTimer=null,wBusy=false,wPending=false;
@@ -414,7 +442,8 @@ function fromLocalInput(v){if(!v)return"";const d=new Date(v);return isNaN(d)?""
 function fmtRem(iso){const d=new Date(iso);return isNaN(d)?"":d.toLocaleString([],{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}
 function add(keep){
   const name=$("name").value.trim();if(!name){$("name").focus();return}
-  tasks.push({id:nextId++,name,category:$("cat").value.trim()||"General",priority:+$("pri").value,spoons:+$("sp").value,status:$("st").value,due:$("dt").value||"",term:$("tm").value,kind:$("kd").value,remindAt:fromLocalInput($("rm").value)});
+  const nid=nextId;tasks.push({id:nextId++,name,category:$("cat").value.trim()||"General",priority:+$("pri").value,spoons:+$("sp").value,status:$("st").value,due:$("dt").value||"",term:$("tm").value,kind:$("kd").value,remindAt:fromLocalInput($("rm").value)});
+  if(planAfterAdd){const d=planDay(planAfterAdd);d.ids=d.ids||[];d.ids.push(nid)}
   $("name").value="";$("dt").value="";$("rm").value="";save();render();if(keep)$("name").focus();else $("dAdd").close();
 }
 $("add").onclick=()=>add(false);$("add2").onclick=()=>add(true);
@@ -491,7 +520,7 @@ function render(skip){
     <td class="c-st" data-l="Status"><select data-f="status" class="c" style="--h:${STH[t.status]}">${sopts(t.status)}</select></td>
     <td class="c-kind" data-l="Type"><select data-f="kind" class="c kd ${t.kind==="business"?"kb":"kp"}"><option value="business"${t.kind==="business"?" selected":""}>Business</option><option value="pleasure"${t.kind!=="business"?" selected":""}>Pleasure</option></select></td>
     <td class="c-due" data-l="Due"><input type="date" data-f="due" class="dt${dcls(t)}" value="${t.due||""}"></td>
-    <td class="del"><button class="x edit" data-edit title="Edit">✎</button><button class="x bell${t.remindAt?" on":""}" data-bell title="Reminder">${t.remindAt?"🔔":"🔕"}</button><button class="x" data-del title="Delete">×</button></td></tr>`).join("")
+    <td class="del"><button class="x pin" data-pin title="Pin to a day">\u{1F4CC}</button><button class="x edit" data-edit title="Edit">✎</button><button class="x bell${t.remindAt?" on":""}" data-bell title="Reminder">${t.remindAt?"🔔":"🔕"}</button><button class="x" data-del title="Delete">×</button></td></tr>`).join("")
     :`<tr><td colspan="8" class="empty">${tasks.length?"No tasks match these filters.":"No tasks yet — add your first one above."}</td></tr>`;
   const open=list.filter(t=>t.status!=="Done");
   $("sum").textContent=`${list.length} shown · ${open.reduce((s,t)=>s+t.spoons,0)} spoons across ${open.length} open task${open.length===1?"":"s"}`;
@@ -580,6 +609,7 @@ $("tb").onclick=e=>{
   const id=+tr.dataset.id;
   if(e.target.hasAttribute("data-open")){openDet(id);return}
   if(e.target.hasAttribute("data-edit")){openEdit(id);return}
+  if(e.target.hasAttribute("data-pin")){openPin(id);return}
   if(e.target.hasAttribute("data-bell")){
     const t=tasks.find(x=>x.id===id);if(!t)return;
     remId=id;$("remName").textContent=t.name;$("rmv").value=toLocalInput(t.remindAt);$("dRem").showModal();return;
@@ -587,7 +617,7 @@ $("tb").onclick=e=>{
   if(!e.target.hasAttribute("data-del"))return;
   delTask(id);
 };
-$("bAdd").onclick=()=>{$("kd").value="pleasure";$("dAdd").showModal();setTimeout(()=>$("name").focus(),50)};
+$("bAdd").onclick=()=>{planAfterAdd=null;$("addTitle").textContent="Add task";$("kd").value="pleasure";$("dAdd").showModal();setTimeout(()=>$("name").focus(),50)};
 $("bImp").onclick=()=>{$("impmsg").textContent="";$("dImp").showModal()};
 $("bSet").onclick=()=>$("dSet").showModal();
 $("pushOn").onclick=enablePush;$("pushTest").onclick=testPush;refreshPushUi();
@@ -653,21 +683,34 @@ initStorage();
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 
 // ---- Daily plan ----
-function planDay(k){return days[k]||(days[k]={ids:[],desc:""})}
-function tidyDay(k){const d=days[k];if(d&&!(d.ids||[]).length&&!(d.desc||"").trim())delete days[k]}
+function planDay(k){const d=days[k]||(days[k]={ids:[],desc:""});if(!Array.isArray(d.ids))d.ids=[];return d}
+function tidyDay(k){const d=days[k];if(d&&!(d.ids||[]).length&&!(d.ev||[]).length&&!(d.desc||"").trim())delete days[k]}
+function tmin(v){const m=/^(\d\d):(\d\d)$/.exec(v||"");return m?+m[1]*60+ +m[2]:null}
 function renderPlan(){
   if(!pDay)pDay=ymd(new Date());
-  const d=days[pDay]||{ids:[],desc:""},ids=(d.ids||[]).filter(id=>tasks.some(t=>t.id===id));
+  const d=days[pDay]||{ids:[],desc:""},times=d.times||{},evs=d.ev||[];
+  const ids=(d.ids||[]).filter(id=>tasks.some(t=>t.id===id));
   $("pDate").value=pDay;
   const dt=new Date(pDay+"T00:00:00");
   $("pLbl").textContent=isNaN(dt)?"":dt.toLocaleDateString([],{weekday:"long",month:"short",day:"numeric"})+(pDay===ymd(new Date())?" · today":"");
-  const rows=ids.map(id=>tasks.find(t=>t.id===id));
-  $("pList").innerHTML=rows.length?rows.map(t=>`<div class="pr${t.status==="Done"?" dn":""}" data-id="${t.id}"><input type="checkbox" data-pc${t.status==="Done"?" checked":""} title="Mark done"><span class="pn" data-po>${esc(t.name)}</span><span class="pm">${t.spoons} \u{1F944}</span><button type="button" class="x" data-px title="Remove from this day">×</button></div>`).join(""):`<div class="sub" style="margin:0">Nothing planned for this day yet.</div>`;
+  const key=id=>tmin(times[id])==null?1e4:tmin(times[id]);
+  const rows=ids.map((id,i)=>[tasks.find(t=>t.id===id),i]).sort((x,y)=>key(x[0].id)-key(y[0].id)||x[1]-y[1]).map(x=>x[0]);
+  $("pList").innerHTML=rows.length?rows.map(t=>`<div class="pr${t.status==="Done"?" dn":""}" data-id="${t.id}"><input type="checkbox" data-pc${t.status==="Done"?" checked":""} title="Mark done"><span class="pn" data-po>${esc(t.name)}</span><input type="time" data-pt value="${times[t.id]||""}" title="Time (optional)"><span class="pm">${t.spoons} \u{1F944}</span><button type="button" class="x" data-px title="Remove from this day">×</button></div>`).join(""):`<div class="sub" style="margin:0">Nothing planned for this day yet.</div>`;
   const open=rows.filter(t=>t.status!=="Done"),sp=open.reduce((a,t)=>a+(+t.spoons||0),0);
   $("pSum").textContent=rows.length?`${rows.length-open.length} of ${rows.length} done · ${sp} spoon${sp===1?"":"s"} still to spend`:"";
   const av=tasks.filter(t=>t.status!=="Done"&&!ids.includes(t.id)),due=av.filter(t=>t.due===pDay),oth=av.filter(t=>t.due!==pDay);
   const o=t=>`<option value="${t.id}">${esc(t.name)} (${t.spoons} \u{1F944})</option>`;
   $("pSel").innerHTML=`<option value="">Choose a task…</option>`+(due.length?`<optgroup label="Due this day">${due.map(o).join("")}</optgroup>`:"")+(oth.length?`<optgroup label="Other open tasks">${oth.map(o).join("")}</optgroup>`:"");
+  // hourly view
+  const items=[];
+  rows.forEach(t=>{const m=tmin(times[t.id]);if(m!=null)items.push({m,html:`<div class="hi${t.status==="Done"?" dn":""}" data-tid="${t.id}"><span class="ht">${times[t.id]}</span><span class="hn" data-ho>${esc(t.name)}</span></div>`})});
+  evs.forEach(e=>{const m=tmin(e.time);if(m!=null)items.push({m,html:`<div class="hi ev" data-eid="${e.id}"><span class="ht">${e.time}</span><span class="hn">${esc(e.text)}</span><button type="button" class="x" data-ex title="Remove">×</button></div>`})});
+  let lo=6,hi=23;items.forEach(x=>{const h=Math.floor(x.m/60);if(h<lo)lo=h;if(h>hi)hi=h});
+  let h="";for(let hr=lo;hr<=hi;hr++){
+    const its=items.filter(x=>Math.floor(x.m/60)===hr).sort((a,b)=>a.m-b.m);
+    h+=`<div class="hr"><button type="button" class="hl" data-h="${hr}">${pad(hr)}:00</button><div class="hb">${its.map(x=>x.html).join("")}</div></div>`;
+  }
+  $("pHours").innerHTML=h;
   if(document.activeElement!==$("pDesc")&&$("pDesc").value!==(d.desc||""))$("pDesc").value=d.desc||"";
 }
 function setView(v){
@@ -685,10 +728,38 @@ $("pDate").onchange=()=>goDay($("pDate").value);
 $("pAddBtn").onclick=()=>{const id=+$("pSel").value;if(!id)return;const d=planDay(pDay);d.ids=d.ids||[];if(!d.ids.includes(id))d.ids.push(id);save();renderPlan()};
 $("pList").onclick=e=>{
   const row=e.target.closest(".pr");if(!row)return;const id=+row.dataset.id,t=tasks.find(x=>x.id===id);if(!t)return;
-  if(e.target.hasAttribute("data-px")){const d=planDay(pDay);d.ids=d.ids.filter(x=>x!==id);tidyDay(pDay);save();renderPlan();return}
+  if(e.target.hasAttribute("data-px")){const d=planDay(pDay);d.ids=d.ids.filter(x=>x!==id);if(d.times)delete d.times[id];tidyDay(pDay);save();renderPlan();return}
   if(e.target.hasAttribute("data-pc")){t.status=e.target.checked?"Done":"To do";save();render();return}
   if(e.target.hasAttribute("data-po"))openDet(id);
 };
+$("pList").onchange=e=>{
+  if(!e.target.hasAttribute("data-pt"))return;const id=+e.target.closest(".pr").dataset.id,d=planDay(pDay);
+  d.times=d.times||{};if(e.target.value)d.times[id]=e.target.value;else delete d.times[id];save();renderPlan();
+};
+$("pHours").onclick=e=>{
+  const hb=e.target.closest("[data-h]");if(hb){$("evT").value=pad(+hb.dataset.h)+":00";$("evX").focus();return}
+  if(e.target.hasAttribute("data-ho")){openDet(+e.target.closest("[data-tid]").dataset.tid);return}
+  if(e.target.hasAttribute("data-ex")){const d=planDay(pDay),id=+e.target.closest("[data-eid]").dataset.eid;d.ev=(d.ev||[]).filter(x=>x.id!==id);if(!d.ev.length)delete d.ev;tidyDay(pDay);save();renderPlan()}
+};
+function addEv(){const t=$("evX").value.trim();if(!t){$("evX").focus();return}if(!$("evT").value)$("evT").value="09:00";
+  const d=planDay(pDay);d.ev=d.ev||[];d.ev.push({id:Date.now(),time:$("evT").value,text:t});$("evX").value="";save();renderPlan();$("evX").focus()}
+$("evAdd").onclick=addEv;$("evX").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();addEv()}};
+$("pNew").onclick=()=>{planAfterAdd=pDay;$("addTitle").textContent="New task for "+$("pLbl").textContent.replace(" · today","");$("kd").value="pleasure";$("dAdd").showModal();setTimeout(()=>$("name").focus(),50)};
+$("dAdd").addEventListener("close",()=>{planAfterAdd=null});
+// pin a task to a day (from the Tasks screen)
+function renderPinList(){
+  const l=Object.keys(days).filter(k=>(days[k].ids||[]).includes(pinId)).sort();
+  $("pinList").innerHTML=l.length?`<div class="sub" style="margin:8px 0 4px">Pinned to:</div>`+l.map(k=>`<div class="crow"><span style="flex:1">${new Date(k+"T00:00:00").toLocaleDateString([],{weekday:"short",month:"short",day:"numeric"})}${days[k].times&&days[k].times[pinId]?" · "+days[k].times[pinId]:""}</span><button type="button" data-unpin="${k}">Unpin</button></div>`).join(""):"";
+}
+function openPin(id){const t=tasks.find(x=>x.id===id);if(!t)return;pinId=id;$("pinName").textContent=t.name;$("pinD").value=t.due&&t.due>=inDays(0)?t.due:inDays(0);$("pinT").value="";renderPinList();$("dPin").showModal()}
+$("pinToday").onclick=()=>{$("pinD").value=inDays(0)};$("pinTom").onclick=()=>{$("pinD").value=inDays(1)};
+$("pinSave").onclick=()=>{
+  const k=$("pinD").value;if(!k){$("pinD").focus();return}
+  const d=planDay(k);if(!d.ids.includes(pinId))d.ids.push(pinId);
+  if($("pinT").value){d.times=d.times||{};d.times[pinId]=$("pinT").value}
+  save();renderPlan();renderPinList();toast("Pinned to "+new Date(k+"T00:00:00").toLocaleDateString([],{weekday:"short",month:"short",day:"numeric"}));
+};
+$("pinList").onclick=e=>{const k=e.target.dataset&&e.target.dataset.unpin;if(!k)return;const d=days[k];if(!d)return;d.ids=d.ids.filter(x=>x!==pinId);if(d.times)delete d.times[pinId];tidyDay(k);save();renderPlan();renderPinList()};
 $("pDesc").oninput=()=>{const d=planDay(pDay);d.desc=$("pDesc").value;tidyDay(pDay);save()};
 let _v="tasks";try{_v=localStorage.getItem("spoon-view-v1")||"tasks"}catch(e){}
 setView(_v==="plan"?"plan":"tasks");
