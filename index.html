@@ -182,7 +182,7 @@ button.pin{font-size:14px;opacity:.55}
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v36</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v37</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -453,7 +453,7 @@ const PS=[52,50,46,52,68,68,68,68];
 const PRI=["Extremely Time Sensitive","Time Sensitive","Small, Significant Tasks","Things that are important to me","Small, Insignificant Tasks","Things that are mildly important to me","Things that I'd like to happen","Things that should happen sometime"];
 const SP=["Spoon Recharger","Simple, can always do it","Can do it with just a bit of energy","Can do it in the right state of mind","Can do it with the help of coffee","Need to actively plan out time to do it","Difficult to get in the right mind to do it","I really don't wanna"];
 function opts(arr,sel){return arr.map(v=>`<option${v==sel?" selected":""}>${v}</option>`).join("")}
-const SL={"In progress":"WIP"},sl=v=>SL[v]||v;
+const SL={"In progress":"WIP","Scheduled":"Sched"},sl=v=>SL[v]||v;
 function sopts(sel){return STATUSES.map(v=>`<option value="${v}"${v==sel?" selected":""}>${sl(v)}</option>`).join("")}
 function lopts(ex,sel){return nums.map(v=>`<option value="${v}"${v==sel?" selected":""}>${v} – ${ex[v]}</option>`).join("")}
 $("ep").innerHTML=lopts(PRI,4);$("es").innerHTML=lopts(SP,3);$("est").innerHTML=sopts("To do");
