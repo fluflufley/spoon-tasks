@@ -83,3 +83,15 @@ The Daily plan page can pull your Google Calendar events into the hourly view. I
 4. **APIs & Services → Credentials → Create credentials → OAuth client ID** → type **Web application**. Under **Authorized JavaScript origins** add `https://fluflufley.github.io` (no path, no trailing slash). No redirect URI is needed. Click **Create** and copy the **Client ID**.
 5. In the app: **Daily plan → Hours → Sync Google Calendar** → paste the Client ID → **Save & sync**. Google will ask you to allow read-only access; while the app is in Testing mode it may say "Google hasn't verified this app" — choose **Advanced → Continue**.
 The Client ID is not a secret (it is meant to be public). It is saved to your account, so you only enter it once. After that, tap **Sync Google Calendar** whenever you want fresh events: it refreshes the calendars you ticked (your main calendar by default) from yesterday through the next 30 days. Synced events appear in blue and cannot be edited here.
+
+## E. Make reminders arrive on time (recommended)
+GitHub's built-in schedule is unreliable on free accounts: instead of every 5 minutes it often runs only every few hours, so closed-app reminders arrive very late. The fix is to have a free external timer start the workflow instead (a manually started workflow is not throttled).
+1. GitHub → your profile picture → **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**. Name it `reminder-timer`, set an expiry (e.g. 1 year), **Repository access → Only select repositories → spoon-tasks**, and under **Repository permissions** set **Actions: Read and write** (leave everything else as "No access"). Generate and copy the token (starts with `github_pat_`). It can only start workflows in this one repository.
+2. Create a free account at [cron-job.org](https://cron-job.org) → **Create cronjob**:
+   - **URL:** `https://api.github.com/repos/fluflufley/spoon-tasks/actions/workflows/reminders.yml/dispatches`
+   - **Execution schedule:** every 5 minutes
+   - **Advanced → Request method:** POST
+   - **Advanced → Headers:** `Authorization` = `Bearer github_pat_...` (your token), `Accept` = `application/vnd.github+json`, `X-GitHub-Api-Version` = `2022-11-28`, `User-Agent` = `reminder-timer`
+   - **Advanced → Request body:** `{"ref":"main"}`
+3. Save, then use **Test run**. A response of **204** means it worked; check the repository's **Actions** tab for a new "Send task reminders" run with the event **workflow_dispatch**.
+Never put the token in the repository. If the token expires, make a new one and update the header in cron-job.org.
