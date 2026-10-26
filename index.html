@@ -182,7 +182,7 @@ button.pin{font-size:14px;opacity:.55}
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v37</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v38</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -225,7 +225,7 @@ button.pin{font-size:14px;opacity:.55}
 <div class="card row" style="align-items:center">
 <button id="pPrev" title="Previous day">‹</button><input type="date" id="pDate"><button id="pNext" title="Next day">›</button><button id="pToday">Today</button>
 <b id="pLbl" style="margin-left:auto"></b></div>
-<div class="card"><h3>Daily tasks</h3>
+<div class="card"><h3>Unscheduled tasks</h3>
 <div class="tw"><table id="ptbl"><thead><tr><th>Task</th><th class="c-cat">Category</th><th class="c-term">Term</th><th class="c-pri">Priority</th><th class="c-sp">Spoons</th><th class="c-st">Status</th><th class="c-kind">Type</th><th class="c-due">Date</th><th></th></tr></thead><tbody id="pb"></tbody></table></div>
 <div class="row" style="margin-top:10px"><button id="pNew">+ New task</button></div>
 <div class="row" style="margin-top:10px"><label class="grow">Add existing task to this day<select id="pSel"></select></label><button class="p" id="pAddBtn">Add</button></div>
@@ -235,7 +235,9 @@ button.pin{font-size:14px;opacity:.55}
 <div id="pAll"></div>
 <div id="pHours"></div>
 <div class="row" style="margin-top:10px"><label>Time<input type="time" id="evT" value="09:00"></label><label class="grow">Add an event or note<input id="evX" placeholder="e.g. Doctor, lunch with Dana…"></label><button class="p" id="evAdd">Add</button></div>
-<div class="sub" style="margin:8px 0 0;font-size:12px">Give a task a time in the list above and it shows up here. Tap an hour to fill in its time.</div></div>
+<div class="sub" style="margin:8px 0 0;font-size:12px">Give a task a time and it appears here and moves to Scheduled tasks below. Tap an hour to fill in its time.</div></div>
+<div class="card" id="pSchedCard"><h3>⏰ Scheduled tasks</h3>
+<div class="tw"><table id="ptbl2"><thead><tr><th>Task</th><th class="c-cat">Category</th><th class="c-term">Term</th><th class="c-pri">Priority</th><th class="c-sp">Spoons</th><th class="c-st">Status</th><th class="c-kind">Type</th><th class="c-due">Date</th><th></th></tr></thead><tbody id="pb2"></tbody></table></div></div>
 <div class="card"><h3>Description</h3>
 <textarea id="pDesc" rows="7" placeholder="What happens on this day? Plans, appointments, how you want it to feel…"></textarea></div>
 </div>
@@ -668,8 +670,8 @@ $("bImp").onclick=()=>{$("impmsg").textContent="";$("dImp").showModal()};
 $("bSet").onclick=()=>$("dSet").showModal();
 $("pushOn").onclick=enablePush;$("pushTest").onclick=testPush;refreshPushUi();
 let showEx=false;try{showEx=localStorage.getItem("spoon-ex-v1")==="1"}catch(e){}
-$("exTog").checked=showEx;$("tbl").classList.toggle("show-ex",showEx);$("ptbl").classList.toggle("show-ex",showEx);
-$("exTog").onchange=e=>{$("tbl").classList.toggle("show-ex",e.target.checked);$("ptbl").classList.toggle("show-ex",e.target.checked);try{localStorage.setItem("spoon-ex-v1",e.target.checked?"1":"0")}catch(x){}};
+$("exTog").checked=showEx;$("tbl").classList.toggle("show-ex",showEx);$("ptbl").classList.toggle("show-ex",showEx);$("ptbl2").classList.toggle("show-ex",showEx);
+$("exTog").onchange=e=>{$("tbl").classList.toggle("show-ex",e.target.checked);$("ptbl").classList.toggle("show-ex",e.target.checked);$("ptbl2").classList.toggle("show-ex",e.target.checked);try{localStorage.setItem("spoon-ex-v1",e.target.checked?"1":"0")}catch(x){}};
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>b.closest("dialog").close());
 document.querySelectorAll("dialog").forEach(d=>d.addEventListener("click",e=>{if(e.target===d)d.close()}));
 function parseTable(txt){
@@ -716,7 +718,7 @@ const COLS=[["cat","Category"],["term","Term"],["pri","Priority"],["sp","Spoons"
 let hidCols=[];try{hidCols=JSON.parse(localStorage.getItem("spoon-cols-v1")||"[]")}catch(e){}
 $("cols").innerHTML=COLS.map(([k,n])=>`<label style="--h:150"><input type="checkbox" value="${k}">${n}</label>`).join("");
 function applyCols(){
-  COLS.forEach(([k])=>{$("tbl").classList.toggle("h-"+k,hidCols.includes(k));$("ptbl").classList.toggle("h-"+k,hidCols.includes(k))});
+  COLS.forEach(([k])=>{$("tbl").classList.toggle("h-"+k,hidCols.includes(k));$("ptbl").classList.toggle("h-"+k,hidCols.includes(k));$("ptbl2").classList.toggle("h-"+k,hidCols.includes(k))});
   $("cols").querySelectorAll("input").forEach(i=>i.checked=!hidCols.includes(i.value));
   $("tonly").textContent=hidCols.length>=COLS.length?"Show all columns":"Tasks only";
   try{localStorage.setItem("spoon-cols-v1",JSON.stringify(hidCols))}catch(e){}
@@ -742,8 +744,9 @@ function renderPlan(){
   const key=id=>tmin(times[id])==null?1e4:tmin(times[id]);
   const rows=ids.map((id,i)=>[tasks.find(t=>t.id===id),i]).sort((x,y)=>key(x[0].id)-key(y[0].id)||(x[0].kind==="business"?0:1)-(y[0].kind==="business"?0:1)||x[0].priority-y[0].priority||x[0].spoons-y[0].spoons||x[1]-y[1]).map(x=>x[0]);
   const hasT=t=>tmin(times[t.id])!=null,tm=rows.filter(hasT),ut=rows.filter(t=>!hasT(t));
-  const grp=(label,arr,c)=>arr.length?`<tr class="ghd"><td colspan="9">${label} <span style="font-weight:400">\u00B7 ${arr.length}</span></td></tr>`+arr.map(t=>rowHTML(t,c,{plan:1,time:times[t.id]||""})).join(""):"";
-  $("pb").innerHTML=rows.length?grp("\u23F0 At a set time",tm," tm")+grp("No time set",ut," ut"):`<tr><td colspan="8" class="empty">Nothing planned for this day yet.</td></tr>`;
+  const mk=(arr,c)=>arr.map(t=>rowHTML(t,c,{plan:1,time:times[t.id]||""})).join("");
+  $("pb").innerHTML=ut.length?mk(ut," ut"):`<tr><td colspan="8" class="empty">${rows.length?"Everything today has a time.":"Nothing planned for this day yet."}</td></tr>`;
+  $("pb2").innerHTML=mk(tm," tm");$("pSchedCard").hidden=!tm.length;
   const open=rows.filter(t=>t.status!=="Done"),sp=open.reduce((a,t)=>a+(+t.spoons||0),0);
   $("pSum").textContent=rows.length?`${rows.length-open.length} of ${rows.length} done · ${sp} spoon${sp===1?"":"s"} still to spend`:"";
   const av=tasks.filter(t=>t.status!=="Done"&&!ids.includes(t.id)),due=av.filter(t=>t.due===pDay),oth=av.filter(t=>t.due!==pDay);
@@ -863,18 +866,19 @@ $("pNext").onclick=()=>{const d=new Date(pDay+"T00:00:00");d.setDate(d.getDate()
 $("pToday").onclick=()=>goDay(ymd(new Date()));
 $("pDate").onchange=()=>goDay($("pDate").value);
 $("pAddBtn").onclick=()=>{const id=+$("pSel").value;if(!id)return;const d=planDay(pDay);d.ids=d.ids||[];if(!d.ids.includes(id))d.ids.push(id);save();render()};
-$("pb").onclick=e=>{
+const pbClick=e=>{
   const tr=e.target.closest("tr");if(!tr||!tr.dataset.id)return;const id=+tr.dataset.id,t=tasks.find(x=>x.id===id);if(!t)return;
   if(e.target.hasAttribute("data-px")){const d=planDay(pDay);d.ids=d.ids.filter(x=>x!==id);if(d.times)delete d.times[id];tidyDay(pDay);save();render();return}
   if(e.target.hasAttribute("data-open")){openDet(id);return}
   if(e.target.hasAttribute("data-edit")){openEdit(id);return}
   if(e.target.hasAttribute("data-bell")){remId=id;$("remName").textContent=t.name;$("rmv").value=toLocalInput(t.remindAt);$("dRem").showModal()}
 };
-$("pb").onchange=e=>{
+const pbChange=e=>{
   const tr=e.target.closest("tr");if(!tr||!tr.dataset.id)return;const id=+tr.dataset.id;
   if(e.target.hasAttribute("data-pt")){const d=planDay(pDay);d.times=d.times||{};if(e.target.value)d.times[id]=e.target.value;else delete d.times[id];save();render();return}
   rowChange(e);
 };
+$("pb").onclick=$("pb2").onclick=pbClick;$("pb").onchange=$("pb2").onchange=pbChange;
 $("pHours").onclick=e=>{
   const hb=e.target.closest("[data-h]");if(hb){$("evT").value=pad(+hb.dataset.h)+":00";$("evX").focus();return}
   if(e.target.hasAttribute("data-ho")){openDet(+e.target.closest("[data-tid]").dataset.tid);return}
