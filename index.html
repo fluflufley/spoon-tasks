@@ -182,7 +182,7 @@ button.pin{font-size:14px;opacity:.55}
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v38</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v39</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -869,7 +869,7 @@ $("pAddBtn").onclick=()=>{const id=+$("pSel").value;if(!id)return;const d=planDa
 const pbClick=e=>{
   const tr=e.target.closest("tr");if(!tr||!tr.dataset.id)return;const id=+tr.dataset.id,t=tasks.find(x=>x.id===id);if(!t)return;
   if(e.target.hasAttribute("data-px")){const d=planDay(pDay);d.ids=d.ids.filter(x=>x!==id);if(d.times)delete d.times[id];tidyDay(pDay);save();render();return}
-  if(e.target.hasAttribute("data-open")){openDet(id);return}
+  if(e.target.hasAttribute("data-open")){if(e.target.classList.contains("sc"))openDet(id);else openEdit(id);return}
   if(e.target.hasAttribute("data-edit")){openEdit(id);return}
   if(e.target.hasAttribute("data-bell")){remId=id;$("remName").textContent=t.name;$("rmv").value=toLocalInput(t.remindAt);$("dRem").showModal()}
 };
@@ -881,7 +881,7 @@ const pbChange=e=>{
 $("pb").onclick=$("pb2").onclick=pbClick;$("pb").onchange=$("pb2").onchange=pbChange;
 $("pHours").onclick=e=>{
   const hb=e.target.closest("[data-h]");if(hb){$("evT").value=pad(+hb.dataset.h)+":00";$("evX").focus();return}
-  if(e.target.hasAttribute("data-ho")){openDet(+e.target.closest("[data-tid]").dataset.tid);return}
+  if(e.target.hasAttribute("data-ho")){openEdit(+e.target.closest("[data-tid]").dataset.tid);return}
   if(e.target.hasAttribute("data-ex")){const d=planDay(pDay),id=+e.target.closest("[data-eid]").dataset.eid;d.ev=(d.ev||[]).filter(x=>x.id!==id);if(!d.ev.length)delete d.ev;tidyDay(pDay);save();render()}
 };
 function addEv(){const t=$("evX").value.trim();if(!t){$("evX").focus();return}if(!$("evT").value)$("evT").value="09:00";
