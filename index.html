@@ -182,7 +182,7 @@ button.pin{font-size:14px;opacity:.55}
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v40</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v41</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -521,7 +521,7 @@ function rowHTML(t,cls,o){return `<tr class="${t.status==="Done"?"done":""}${t.k
     <td class="c-st" data-l="Status"><select data-f="status" class="c" style="--h:${STH[t.status]}">${sopts(t.status)}</select></td>
     <td class="c-kind" data-l="Type"><select data-f="kind" class="c kd ${t.kind==="business"?"kb":"kp"}"><option value="business"${t.kind==="business"?" selected":""}>Business</option><option value="pleasure"${t.kind!=="business"?" selected":""}>Pleasure</option></select></td>
     <td class="c-due" data-l="Due"><input type="date" data-f="due" class="dt${dcls(t)}" value="${t.due||""}"></td>
-    <td class="del">${o&&o.plan?"":`<button class="x pin" data-pin title="Pin to a day">\u{1F4CC}</button>`}<button class="x edit" data-edit title="Edit">✎</button><button class="x bell${t.remindAt?" on":""}" data-bell title="Reminder">${t.remindAt?"🔔":"🔕"}</button>${o&&o.plan?`<button class="x" data-px title="Remove from this day">×</button>`:`<button class="x" data-del title="Delete">×</button>`}</td></tr>`}
+    <td class="del">${o&&o.plan?"":`<button class="x pin" data-pin title="Pin to a day">\u{1F4CC}</button>`}<button class="x edit" data-edit title="Edit">✎</button><button class="x bell${t.remindAt?" on":""}" data-bell title="Reminder">${t.remindAt?"🔔":"🔕"}</button>${o&&o.plan?`<button class="x" data-skip title="Skip to tomorrow">\u23ED</button><button class="x" data-px title="Remove from this day">×</button>`:`<button class="x" data-del title="Delete">×</button>`}</td></tr>`}
 // A "To do" task pinned to today-or-later with a time becomes "Scheduled" (and goes back if that slot is removed).
 function autoSched(){
   const today=inDays(0),slot=new Set();
@@ -866,9 +866,28 @@ $("pNext").onclick=()=>{const d=new Date(pDay+"T00:00:00");d.setDate(d.getDate()
 $("pToday").onclick=()=>goDay(ymd(new Date()));
 $("pDate").onchange=()=>goDay($("pDate").value);
 $("pAddBtn").onclick=()=>{const id=+$("pSel").value;if(!id)return;const d=planDay(pDay);d.ids=d.ids||[];if(!d.ids.includes(id))d.ids.push(id);save();render()};
+function nextDay(k){const d=new Date(k+"T00:00:00");d.setDate(d.getDate()+1);return ymd(d)}
+function skipTask(id){
+  const from=pDay,to=nextDay(from),a=planDay(from),tm=a.times&&a.times[id];
+  if(!a.ids.includes(id))return;
+  const b=planDay(to),had=b.ids.includes(id),hadT=b.times&&b.times[id];
+  a.ids=a.ids.filter(x=>x!==id);if(a.times)delete a.times[id];
+  if(!had)b.ids.push(id);
+  if(tm&&!hadT){b.times=b.times||{};b.times[id]=tm}
+  tidyDay(from);save();render();
+  const name=(tasks.find(t=>t.id===id)||{}).name||"Task";
+  toast("Skipped \u201C"+name+"\u201D to "+new Date(to+"T00:00:00").toLocaleDateString([],{weekday:"short",month:"short",day:"numeric"}),()=>{
+    const a2=planDay(from),b2=planDay(to);
+    if(!a2.ids.includes(id))a2.ids.push(id);
+    if(tm){a2.times=a2.times||{};a2.times[id]=tm}
+    if(!had){b2.ids=b2.ids.filter(x=>x!==id);if(b2.times&&!hadT)delete b2.times[id]}
+    tidyDay(to);save();render();
+  });
+}
 const pbClick=e=>{
   const tr=e.target.closest("tr");if(!tr||!tr.dataset.id)return;const id=+tr.dataset.id,t=tasks.find(x=>x.id===id);if(!t)return;
   if(e.target.hasAttribute("data-px")){const d=planDay(pDay);d.ids=d.ids.filter(x=>x!==id);if(d.times)delete d.times[id];tidyDay(pDay);save();render();return}
+  if(e.target.hasAttribute("data-skip")){skipTask(id);return}
   if(e.target.hasAttribute("data-open")){if(e.target.classList.contains("sc"))openDet(id);else openEdit(id);return}
   if(e.target.hasAttribute("data-edit")){openEdit(id);return}
   if(e.target.hasAttribute("data-bell")){remId=id;$("remName").textContent=t.name;$("rmv").value=toLocalInput(t.remindAt);$("dRem").showModal()}
