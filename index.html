@@ -177,10 +177,20 @@ tr.ut{background:color-mix(in srgb,hsl(35 25% 50%) 6%,transparent)}
 .hi .hn{flex:1;min-width:0;overflow-wrap:anywhere;cursor:pointer}
 .hi .x{padding:0 6px;line-height:1.2;margin-left:auto}
 button.pin{font-size:14px;opacity:.55}
+.tl{position:relative;margin-top:2px}
+.tl .tlh{position:absolute;left:0;right:0;height:46px;border:0;border-top:1px solid var(--bd);border-radius:0;background:none;text-align:left;vertical-align:top;padding:3px 0 0;font-size:12px;color:var(--mu);cursor:pointer;box-shadow:none}
+.tl .hi{position:absolute;box-sizing:border-box;overflow:hidden;align-items:flex-start;padding:3px 6px;line-height:1.25;font-size:13px}
+.tl .hi .hn{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tl .hi.tall{display:block;padding-right:22px}
+.tl .hi.tall .ht{display:block;margin:0 0 1px}
+.tl .hi.tall .hn{display:block;white-space:normal}
+.tl .hi.tall .x{position:absolute;top:1px;right:2px}
 .hi.rt{background:hsl(150 38% var(--pl))}
 .rtc .pr{padding:6px 0}
-.rte{display:grid;grid-template-columns:70px 1fr auto;gap:6px;align-items:center;margin-bottom:12px}
+.rte{display:grid;grid-template-columns:62px 1fr 1fr auto;gap:6px;align-items:center;margin-bottom:12px}
 .rte [data-n]{grid-column:1/-1}
+.ptd{margin:0 4px;color:var(--mu)}
+.ptime input{width:104px}
 .rte input,.rte select{min-width:0;width:100%}
 .hi.gc{background:hsl(210 55% var(--pl))}
 .hi.gc .hn{cursor:default}
@@ -190,7 +200,7 @@ button.pin{font-size:14px;opacity:.55}
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v46</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v48</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -244,7 +254,7 @@ button.pin{font-size:14px;opacity:.55}
 <div class="row" style="margin:0 0 8px;align-items:center"><button id="gSync">↻ Sync Google Calendar</button><a href="#" id="gSet" style="font-size:12px;color:var(--ac)">Setup</a><span class="sub" id="gMsg" style="margin:0;font-size:12px"></span></div>
 <div id="pAll"></div>
 <div id="pHours"></div>
-<div class="row" style="margin-top:10px"><label>Time<input type="time" id="evT" value="09:00"></label><label class="grow">Add an event or note<input id="evX" placeholder="e.g. Doctor, lunch with Dana…"></label><button class="p" id="evAdd">Add</button></div>
+<div class="row" style="margin-top:10px"><label>Start<input type="time" id="evT" value="09:00"></label><label>End<input type="time" id="evE"></label><label class="grow">Add an event or note<input id="evX" placeholder="e.g. Doctor, lunch with Dana…"></label><button class="p" id="evAdd">Add</button></div>
 <div class="sub" style="margin:8px 0 0;font-size:12px">Give a task a time and it appears here and moves to Scheduled tasks below. Tap an hour to fill in its time.</div></div>
 <div class="card" id="pSchedCard"><h3>⏰ Scheduled tasks</h3>
 <div class="tw"><table id="ptbl2"><thead><tr><th>Task</th><th class="c-cat">Category</th><th class="c-term">Term</th><th class="c-pri">Priority</th><th class="c-sp">Spoons</th><th class="c-st">Status</th><th class="c-kind">Type</th><th class="c-due">Date</th><th></th></tr></thead><tbody id="pb2"></tbody></table></div></div>
@@ -533,7 +543,7 @@ $("catpanel").onchange=e=>{
   render();
 };
 function rowHTML(t,cls,o){return `<tr class="${t.status==="Done"?"done":""}${t.kind==="business"?" biz":t.kind==="should"?" shd":""}${cls||""}" data-id="${t.id}">
-    <td class="n"><span class="nm" data-open title="Open">${esc(t.name)}</span>${subBadge(t)}${o&&o.plan?`<div class="ptime"><input type="time" data-pt value="${esc(o.time||"")}" title="Time on this day (optional)"></div>`:""}${t.remindAt?`<div class="rmi${new Date(t.remindAt)<new Date()?" past":""}">🔔 ${fmtRem(t.remindAt)}</div>`:""}</td>
+    <td class="n"><span class="nm" data-open title="Open">${esc(t.name)}</span>${subBadge(t)}${o&&o.plan?`<div class="ptime"><input type="time" data-pt value="${esc(o.time||"")}" title="Start time (optional)"><span class="ptd">\u2013</span><input type="time" data-pe value="${esc(o.end||"")}" title="End time (optional)"></div>`:""}${t.remindAt?`<div class="rmi${new Date(t.remindAt)<new Date()?" past":""}">🔔 ${fmtRem(t.remindAt)}</div>`:""}</td>
     <td class="c-cat" data-l="Cat."><input class="pill catin" data-f="category" list="cats" value="${esc(t.category)}" style="--h:${catHue(t.category)};width:${Math.max(6,t.category.length+5)}ch"></td>
     <td class="c-term" data-l="Term"><select data-f="term" class="c" style="--h:${(t.term||"short")==="long"?335:175}"><option value="short"${(t.term||"short")==="short"?" selected":""}>Tactical</option><option value="long"${t.term==="long"?" selected":""}>Strategic</option></select></td>
     <td class="c-pri" data-l="Prio."><select data-f="priority" class="c pri${t.priority===0?" dk":""}" title="${esc(PRI[t.priority])}" style="--h:${PH[t.priority]};--d:${Math.max(0,38-10*t.priority)};--s:${PS[t.priority]}%">${opts(nums,t.priority)}</select><div class="ex">${esc(PRI[t.priority])}</div></td>
@@ -756,7 +766,7 @@ function tidyDay(k){const d=days[k];if(d&&!(d.ids||[]).length&&!(d.ev||[]).lengt
 function tmin(v){const m=/^(\d\d):(\d\d)$/.exec(v||"");return m?+m[1]*60+ +m[2]:null}
 function renderPlan(){
   if(!pDay)pDay=ymd(new Date());
-  const d=days[pDay]||{ids:[],desc:""},times=d.times||{},evs=d.ev||[];
+  const d=days[pDay]||{ids:[],desc:""},times=d.times||{},ends=d.ends||{},evs=d.ev||[];
   const ids=(d.ids||[]).filter(id=>tasks.some(t=>t.id===id));
   const rts=routine.filter(r=>!r.from||r.from<=pDay),rd=d.rd||{};
   $("pDate").value=pDay;
@@ -765,7 +775,7 @@ function renderPlan(){
   const key=id=>tmin(times[id])==null?1e4:tmin(times[id]);
   const rows=ids.map((id,i)=>[tasks.find(t=>t.id===id),i]).sort((x,y)=>key(x[0].id)-key(y[0].id)||({business:0,should:1,pleasure:2}[kn(x[0])])-({business:0,should:1,pleasure:2}[kn(y[0])])||x[0].priority-y[0].priority||x[0].spoons-y[0].spoons||x[1]-y[1]).map(x=>x[0]);
   const hasT=t=>tmin(times[t.id])!=null,tm=rows.filter(hasT),ut=rows.filter(t=>!hasT(t));
-  const mk=(arr,c)=>arr.map(t=>rowHTML(t,c,{plan:1,time:times[t.id]||""})).join("");
+  const mk=(arr,c)=>arr.map(t=>rowHTML(t,c,{plan:1,time:times[t.id]||"",end:ends[t.id]||""})).join("");
   $("pb").innerHTML=ut.length?mk(ut," ut"):`<tr><td colspan="8" class="empty">${rows.length?"Everything today has a time.":"Nothing planned for this day yet."}</td></tr>`;
   $("pb2").innerHTML=mk(tm," tm");$("pSchedCard").hidden=!tm.length;
   const open=rows.filter(t=>t.status!=="Done"),rtOpen=rts.filter(r=>!rd[r.id]),sp=open.reduce((a,t)=>a+(+t.spoons||0),0)+rtOpen.reduce((a,r)=>a+(+r.spoons||0),0);
@@ -774,20 +784,32 @@ function renderPlan(){
   const o=t=>`<option value="${t.id}">${esc(t.name)} (${t.spoons} \u{1F944})</option>`;
   $("pSel").innerHTML=`<option value="">Choose a task…</option>`+(due.length?`<optgroup label="Due this day">${due.map(o).join("")}</optgroup>`:"")+(oth.length?`<optgroup label="Other open tasks">${oth.map(o).join("")}</optgroup>`:"");
   // daily routine
-  $("rList").innerHTML=rts.length?rts.map(r=>`<div class="pr${rd[r.id]?" dn":""}" data-rid="${r.id}"><input type="checkbox" data-rc${rd[r.id]?" checked":""}><span class="pn">${esc(r.name)}${r.time?` <span class="sub" style="margin:0;font-size:12px">${esc(r.time)}</span>`:""}</span><span class="pm">${r.spoons} \u{1F944}</span></div>`).join(""):`<div class="sub" style="margin:0">No daily routine yet. Tap Manage to add things you do every day.</div>`;
+  $("rList").innerHTML=rts.length?rts.map(r=>`<div class="pr${rd[r.id]?" dn":""}" data-rid="${r.id}"><input type="checkbox" data-rc${rd[r.id]?" checked":""}><span class="pn">${esc(r.name)}${r.time?` <span class="sub" style="margin:0;font-size:12px">${esc(r.time)}${r.end?"\u2013"+esc(r.end):""}</span>`:""}</span><span class="pm">${r.spoons} \u{1F944}</span></div>`).join(""):`<div class="sub" style="margin:0">No daily routine yet. Tap Manage to add things you do every day.</div>`;
   // hourly view
   const items=[];
-  rows.forEach(t=>{const m=tmin(times[t.id]);if(m!=null)items.push({m,html:`<div class="hi stc${t.status==="Done"?" dn":""}" style="--h:${STH[t.status]}" data-tid="${t.id}"><span class="ht">${times[t.id]}</span><span class="hn" data-ho>${esc(t.name)}</span><button type="button" class="x" data-hx title="Take off the timeline (keeps it on this day, no time)">×</button></div>`})});
-  rts.forEach(r=>{const m=tmin(r.time);if(m!=null)items.push({m,html:`<div class="hi rt${rd[r.id]?" dn":""}" title="Daily routine"><span class="ht">${r.time}</span><span class="hn">${esc(r.name)}</span></div>`})});
-  evs.forEach(e=>{const m=tmin(e.time);if(m!=null)items.push({m,html:`<div class="hi ev" data-eid="${e.id}"><span class="ht">${e.time}</span><span class="hn">${esc(e.text)}</span><button type="button" class="x" data-ex title="Remove">×</button></div>`})});
-  (d.gcal||[]).forEach(e=>{const m=tmin(e.time);if(m!=null)items.push({m,html:`<div class="hi gc" title="${esc(e.cal||"Google Calendar")}"${e.col?` style="border-left:4px solid ${esc(e.col)}"`:""}><span class="ht">${e.time}${e.end?"\u2013"+e.end:""}</span><span class="hn">${esc(e.text)}</span></div>`})});
+  const add=(st,en,cls,inner,extra)=>{const sm=tmin(st);if(sm==null)return;let em=tmin(en);if(em==null||em<=sm)em=null;items.push({s:sm,e:em,v:Math.min(1440,Math.max(em==null?sm:em,sm+30)),cls,inner,extra:extra||""})};
+  const rng=(st,en)=>`<span class="ht">${st}${en&&tmin(en)>tmin(st)?"\u2013"+en:""}</span>`;
+  rows.forEach(t=>add(times[t.id],ends[t.id],`stc${t.status==="Done"?" dn":""}`,`${rng(times[t.id],ends[t.id])}<span class="hn" data-ho>${esc(t.name)}</span><button type="button" class="x" data-hx title="Take off the timeline (keeps it on this day, no time)">×</button>`,`data-tid="${t.id}" style="--h:${STH[t.status]}`));
+  rts.forEach(r=>add(r.time,r.end,`rt${rd[r.id]?" dn":""}`,`${rng(r.time,r.end)}<span class="hn">${esc(r.name)}</span>`,`title="Daily routine"`));
+  evs.forEach(e=>add(e.time,e.end,"ev",`${rng(e.time,e.end)}<span class="hn">${esc(e.text)}</span><button type="button" class="x" data-ex title="Remove">×</button>`,`data-eid="${e.id}"`));
+  (d.gcal||[]).forEach(e=>add(e.time,e.end,"gc",`${rng(e.time,e.end)}<span class="hn">${esc(e.text)}</span>`,`title="${esc(e.cal||"Google Calendar")}"${e.col?` style="border-left:4px solid ${esc(e.col)}`:""}`));
   $("pAll").innerHTML=(d.gcal||[]).filter(e=>e.allDay).map(e=>`<span class="hi ad" title="${esc(e.cal||"Google Calendar")} (all day)"${e.col?` style="border-left:4px solid ${esc(e.col)}"`:""}><span class="ht">All day</span><span class="hn">${esc(e.text)}</span></span>`).join("");
-  let lo=6,hi=23;items.forEach(x=>{const h=Math.floor(x.m/60);if(h<lo)lo=h;if(h>hi)hi=h});
-  let h="";for(let hr=lo;hr<=hi;hr++){
-    const its=items.filter(x=>Math.floor(x.m/60)===hr).sort((a,b)=>a.m-b.m);
-    h+=`<div class="hr"><button type="button" class="hl" data-h="${hr}">${pad(hr)}:00</button><div class="hb">${its.map(x=>x.html).join("")}</div></div>`;
-  }
-  $("pHours").innerHTML=h;
+  let lo=6,hi=23;items.forEach(x=>{lo=Math.min(lo,Math.floor(x.s/60));hi=Math.max(hi,Math.min(23,Math.ceil(x.v/60)-1))});
+  items.sort((a,b)=>a.s-b.s||b.v-a.v);
+  let cl=[],cend=-1;
+  const flush=()=>{const lanes=[];cl.forEach(it=>{let l=lanes.findIndex(le=>le<=it.s);if(l<0){l=lanes.length;lanes.push(0)}lanes[l]=it.v;it.l=l});cl.forEach(it=>it.n=lanes.length);cl=[]};
+  items.forEach(it=>{if(cl.length&&it.s>=cend){flush();cend=-1}cl.push(it);cend=Math.max(cend,it.v)});flush();
+  const H=46;let h="";
+  for(let hr=lo;hr<=hi;hr++)h+=`<button type="button" class="tlh" style="top:${(hr-lo)*H}px" data-h="${hr}">${pad(hr)}:00</button>`;
+  items.forEach(it=>{
+    const top=(it.s-lo*60)*H/60,ht=Math.max(24,(it.v-it.s)*H/60-2);
+    const pos=`top:${top+1}px;height:${ht}px;left:calc(54px + (100% - 54px) * ${it.l} / ${it.n});width:calc((100% - 54px) / ${it.n} - 3px)`;
+    let ex=it.extra,st=pos;
+    const m=/style="([^"]*)$/.exec(ex);   // extra carries an unterminated style attribute value
+    if(m){st=m[1]+";"+pos;ex=ex.slice(0,m.index)}
+    h+=`<div class="hi ${it.cls}${ht>=44?" tall":""}" ${ex} style="${st}">${it.inner}</div>`;
+  });
+  $("pHours").innerHTML=`<div class="tl" style="height:${(hi-lo+1)*H}px">${h}</div>`;
   if(document.activeElement!==$("pDesc")&&$("pDesc").value!==(d.desc||""))$("pDesc").value=d.desc||"";
 }
 // ---- Google Calendar (read-only) ----
@@ -840,7 +862,7 @@ async function syncCal(){
         do{put(ymd(d),{id:v.id,text,allDay:true,cal:cname,col});d.setDate(d.getDate()+1);i++}while(d<end&&i<14);
       }else if(v.start.dateTime){
         const s=new Date(v.start.dateTime),en=v.end&&v.end.dateTime?new Date(v.end.dateTime):null;
-        put(ymd(s),{id:v.id,text,time:pad(s.getHours())+":"+pad(s.getMinutes()),end:en&&ymd(en)===ymd(s)?pad(en.getHours())+":"+pad(en.getMinutes()):"",cal:cname,col});
+        put(ymd(s),{id:v.id,text,time:pad(s.getHours())+":"+pad(s.getMinutes()),end:en?(ymd(en)===ymd(s)?pad(en.getHours())+":"+pad(en.getMinutes()):"23:59"):"",cal:cname,col});
       }
     }
     for(const k of Object.keys(days))tidyDay(k);
@@ -892,25 +914,25 @@ $("pDate").onchange=()=>goDay($("pDate").value);
 $("pAddBtn").onclick=()=>{const id=+$("pSel").value;if(!id)return;const d=planDay(pDay);d.ids=d.ids||[];if(!d.ids.includes(id))d.ids.push(id);save();render()};
 function nextDay(k){const d=new Date(k+"T00:00:00");d.setDate(d.getDate()+1);return ymd(d)}
 function skipTask(id){
-  const from=pDay,to=nextDay(from),a=planDay(from),tm=a.times&&a.times[id];
+  const from=pDay,to=nextDay(from),a=planDay(from),tm=a.times&&a.times[id],te=a.ends&&a.ends[id];
   if(!a.ids.includes(id))return;
   const b=planDay(to),had=b.ids.includes(id),hadT=b.times&&b.times[id];
-  a.ids=a.ids.filter(x=>x!==id);if(a.times)delete a.times[id];
+  a.ids=a.ids.filter(x=>x!==id);if(a.times)delete a.times[id];if(a.ends)delete a.ends[id];
   if(!had)b.ids.push(id);
-  if(tm&&!hadT){b.times=b.times||{};b.times[id]=tm}
+  if(tm&&!hadT){b.times=b.times||{};b.times[id]=tm;if(te){b.ends=b.ends||{};b.ends[id]=te}}
   tidyDay(from);save();render();
   const name=(tasks.find(t=>t.id===id)||{}).name||"Task";
   toast("Skipped \u201C"+name+"\u201D to "+new Date(to+"T00:00:00").toLocaleDateString([],{weekday:"short",month:"short",day:"numeric"}),()=>{
     const a2=planDay(from),b2=planDay(to);
     if(!a2.ids.includes(id))a2.ids.push(id);
-    if(tm){a2.times=a2.times||{};a2.times[id]=tm}
-    if(!had){b2.ids=b2.ids.filter(x=>x!==id);if(b2.times&&!hadT)delete b2.times[id]}
+    if(tm){a2.times=a2.times||{};a2.times[id]=tm;if(te){a2.ends=a2.ends||{};a2.ends[id]=te}}
+    if(!had){b2.ids=b2.ids.filter(x=>x!==id);if(b2.times&&!hadT)delete b2.times[id];if(b2.ends&&!hadT)delete b2.ends[id]}
     tidyDay(to);save();render();
   });
 }
 const pbClick=e=>{
   const tr=e.target.closest("tr");if(!tr||!tr.dataset.id)return;const id=+tr.dataset.id,t=tasks.find(x=>x.id===id);if(!t)return;
-  if(e.target.hasAttribute("data-px")){const d=planDay(pDay);d.ids=d.ids.filter(x=>x!==id);if(d.times)delete d.times[id];tidyDay(pDay);save();render();return}
+  if(e.target.hasAttribute("data-px")){const d=planDay(pDay);d.ids=d.ids.filter(x=>x!==id);if(d.times)delete d.times[id];if(d.ends)delete d.ends[id];tidyDay(pDay);save();render();return}
   if(e.target.hasAttribute("data-skip")){skipTask(id);return}
   if(e.target.hasAttribute("data-open")){if(e.target.classList.contains("sc"))openDet(id);else openEdit(id);return}
   if(e.target.hasAttribute("data-edit")){openEdit(id);return}
@@ -918,7 +940,10 @@ const pbClick=e=>{
 };
 const pbChange=e=>{
   const tr=e.target.closest("tr");if(!tr||!tr.dataset.id)return;const id=+tr.dataset.id;
-  if(e.target.hasAttribute("data-pt")){const d=planDay(pDay);d.times=d.times||{};if(e.target.value)d.times[id]=e.target.value;else delete d.times[id];save();render();return}
+  if(e.target.hasAttribute("data-pt")){const d=planDay(pDay);d.times=d.times||{};if(e.target.value)d.times[id]=e.target.value;else delete d.times[id];
+    if(d.ends&&(!e.target.value||tmin(d.ends[id])<=tmin(e.target.value)))delete d.ends[id];save();render();return}
+  if(e.target.hasAttribute("data-pe")){const d=planDay(pDay);d.ends=d.ends||{};const st=d.times&&d.times[id];
+    if(e.target.value&&st&&tmin(e.target.value)>tmin(st))d.ends[id]=e.target.value;else delete d.ends[id];save();render();return}
   rowChange(e);
 };
 $("pb").onclick=$("pb2").onclick=pbClick;$("pb").onchange=$("pb2").onchange=pbChange;
@@ -929,25 +954,25 @@ $("rList").onchange=e=>{
 };
 let rtDraft=[];
 function rtRows(){
-  $("rtEdit").innerHTML=rtDraft.map((r,i)=>`<div class="rte" data-i="${i}"><input data-n value="${esc(r.name)}" placeholder="e.g. Take meds"><select data-s>${[0,1,2,3,4,5,6,7].map(n=>`<option${n===+r.spoons?" selected":""}>${n}</option>`).join("")}</select><input type="time" data-t value="${esc(r.time||"")}"><button type="button" class="x" data-rm title="Remove">×</button></div>`).join("")||`<div class="sub" style="margin:0 0 8px">Nothing yet.</div>`;
+  $("rtEdit").innerHTML=rtDraft.map((r,i)=>`<div class="rte" data-i="${i}"><input data-n value="${esc(r.name)}" placeholder="e.g. Take meds"><select data-s>${[0,1,2,3,4,5,6,7].map(n=>`<option${n===+r.spoons?" selected":""}>${n}</option>`).join("")}</select><input type="time" data-t value="${esc(r.time||"")}" title="Start"><input type="time" data-e value="${esc(r.end||"")}" title="End (optional)"><button type="button" class="x" data-rm title="Remove">×</button></div>`).join("")||`<div class="sub" style="margin:0 0 8px">Nothing yet.</div>`;
 }
-function rtRead(){rtDraft=[...$("rtEdit").querySelectorAll(".rte")].map(el=>{const o=rtDraft[+el.dataset.i];return Object.assign({},o,{name:el.querySelector("[data-n]").value,spoons:+el.querySelector("[data-s]").value,time:el.querySelector("[data-t]").value})})}
+function rtRead(){rtDraft=[...$("rtEdit").querySelectorAll(".rte")].map(el=>{const o=rtDraft[+el.dataset.i];return Object.assign({},o,{name:el.querySelector("[data-n]").value,spoons:+el.querySelector("[data-s]").value,time:el.querySelector("[data-t]").value,end:el.querySelector("[data-e]").value})})}
 $("rtManage").onclick=()=>{rtDraft=routine.map(r=>Object.assign({},r));if(!rtDraft.length)rtDraft.push({name:"",spoons:1,time:""});rtRows();$("dRoutine").showModal()};
 $("rtAdd").onclick=()=>{rtRead();rtDraft.push({name:"",spoons:1,time:""});rtRows();const n=$("rtEdit").querySelectorAll("[data-n]");n[n.length-1].focus()};
 $("rtEdit").onclick=e=>{if(!e.target.hasAttribute("data-rm"))return;rtRead();rtDraft.splice(+e.target.closest(".rte").dataset.i,1);rtRows()};
 $("rtSave").onclick=()=>{
   rtRead();const today=ymd(new Date());let n=0;
-  routine=rtDraft.filter(r=>(r.name||"").trim()).map(r=>({id:r.id||String(Date.now()+(n++)),name:r.name.trim(),spoons:r.spoons,time:r.time||"",from:r.from||today}));
+  routine=rtDraft.filter(r=>(r.name||"").trim()).map(r=>({id:r.id||String(Date.now()+(n++)),name:r.name.trim(),spoons:r.spoons,time:r.time||"",end:r.time&&r.end&&tmin(r.end)>tmin(r.time)?r.end:"",from:r.from||today}));
   save();$("dRoutine").close();render();
 };
 $("pHours").onclick=e=>{
   const hb=e.target.closest("[data-h]");if(hb){$("evT").value=pad(+hb.dataset.h)+":00";$("evX").focus();return}
-  if(e.target.hasAttribute("data-hx")){const id=+e.target.closest("[data-tid]").dataset.tid,d=planDay(pDay);if(d.times)delete d.times[id];save();render();return}
+  if(e.target.hasAttribute("data-hx")){const id=+e.target.closest("[data-tid]").dataset.tid,d=planDay(pDay);if(d.times)delete d.times[id];if(d.ends)delete d.ends[id];save();render();return}
   if(e.target.hasAttribute("data-ho")){openEdit(+e.target.closest("[data-tid]").dataset.tid);return}
   if(e.target.hasAttribute("data-ex")){const d=planDay(pDay),id=+e.target.closest("[data-eid]").dataset.eid;d.ev=(d.ev||[]).filter(x=>x.id!==id);if(!d.ev.length)delete d.ev;tidyDay(pDay);save();render()}
 };
 function addEv(){const t=$("evX").value.trim();if(!t){$("evX").focus();return}if(!$("evT").value)$("evT").value="09:00";
-  const d=planDay(pDay);d.ev=d.ev||[];d.ev.push({id:Date.now(),time:$("evT").value,text:t});$("evX").value="";save();render();$("evX").focus()}
+  const d=planDay(pDay);d.ev=d.ev||[];const en=$("evE").value;d.ev.push({id:Date.now(),time:$("evT").value,end:en&&tmin(en)>tmin($("evT").value)?en:"",text:t});$("evE").value="";$("evX").value="";save();render();$("evX").focus()}
 $("evAdd").onclick=addEv;$("evX").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();addEv()}};
 $("pNew").onclick=()=>{planAfterAdd=pDay;$("addTitle").textContent="New task for "+$("pLbl").textContent.replace(" · today","");$("kd").value="pleasure";$("dAdd").showModal();setTimeout(()=>$("name").focus(),50)};
 $("dAdd").addEventListener("close",()=>{planAfterAdd=null});
