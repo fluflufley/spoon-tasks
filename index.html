@@ -200,7 +200,7 @@ button.pin{font-size:14px;opacity:.55}
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v48</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v49</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -230,10 +230,10 @@ button.pin{font-size:14px;opacity:.55}
 <div class="card">
 <div class="tw"><table id="tbl">
 <thead><tr>
-<th>Task</th><th class="c-cat">Category</th><th class="s c-term" data-k="term">Term ↕</th>
+<th>Task</th><th class="s c-st" data-k="status">Status ↕</th><th class="c-cat">Category</th><th class="s c-term" data-k="term">Term ↕</th>
 <th class="s c-pri" data-k="priority">Priority ↕</th>
 <th class="s c-sp" data-k="spoons">Spoons ↕</th>
-<th class="s c-st" data-k="status">Status ↕</th><th class="c-kind">Type</th><th class="s c-due" data-k="due">Date ↕</th><th></th></tr></thead>
+<th class="c-kind">Type</th><th class="s c-due" data-k="due">Date ↕</th><th></th></tr></thead>
 <tbody id="tb"></tbody></table></div>
 <div class="sum" id="sum"></div>
 </div>
@@ -246,7 +246,7 @@ button.pin{font-size:14px;opacity:.55}
 <div class="card rtc"><div class="row" style="align-items:center;margin:0 0 6px"><h3 style="margin:0">Daily routine</h3><button id="rtManage" style="margin-left:auto">Manage</button></div>
 <div id="rList"></div></div>
 <div class="card"><h3>Unscheduled tasks</h3>
-<div class="tw"><table id="ptbl"><thead><tr><th>Task</th><th class="c-cat">Category</th><th class="c-term">Term</th><th class="c-pri">Priority</th><th class="c-sp">Spoons</th><th class="c-st">Status</th><th class="c-kind">Type</th><th class="c-due">Date</th><th></th></tr></thead><tbody id="pb"></tbody></table></div>
+<div class="tw"><table id="ptbl"><thead><tr><th>Task</th><th class="c-st">Status</th><th class="c-cat">Category</th><th class="c-term">Term</th><th class="c-pri">Priority</th><th class="c-sp">Spoons</th><th class="c-kind">Type</th><th class="c-due">Date</th><th></th></tr></thead><tbody id="pb"></tbody></table></div>
 <div class="row" style="margin-top:10px"><button id="pNew">+ New task</button></div>
 <div class="row" style="margin-top:10px"><label class="grow">Add existing task to this day<select id="pSel"></select></label><button class="p" id="pAddBtn">Add</button></div>
 <div class="sum" id="pSum"></div></div>
@@ -257,7 +257,7 @@ button.pin{font-size:14px;opacity:.55}
 <div class="row" style="margin-top:10px"><label>Start<input type="time" id="evT" value="09:00"></label><label>End<input type="time" id="evE"></label><label class="grow">Add an event or note<input id="evX" placeholder="e.g. Doctor, lunch with Dana…"></label><button class="p" id="evAdd">Add</button></div>
 <div class="sub" style="margin:8px 0 0;font-size:12px">Give a task a time and it appears here and moves to Scheduled tasks below. Tap an hour to fill in its time.</div></div>
 <div class="card" id="pSchedCard"><h3>⏰ Scheduled tasks</h3>
-<div class="tw"><table id="ptbl2"><thead><tr><th>Task</th><th class="c-cat">Category</th><th class="c-term">Term</th><th class="c-pri">Priority</th><th class="c-sp">Spoons</th><th class="c-st">Status</th><th class="c-kind">Type</th><th class="c-due">Date</th><th></th></tr></thead><tbody id="pb2"></tbody></table></div></div>
+<div class="tw"><table id="ptbl2"><thead><tr><th>Task</th><th class="c-st">Status</th><th class="c-cat">Category</th><th class="c-term">Term</th><th class="c-pri">Priority</th><th class="c-sp">Spoons</th><th class="c-kind">Type</th><th class="c-due">Date</th><th></th></tr></thead><tbody id="pb2"></tbody></table></div></div>
 <div class="card"><h3>Description</h3>
 <textarea id="pDesc" rows="7" placeholder="What happens on this day? Plans, appointments, how you want it to feel…"></textarea></div>
 </div>
@@ -544,11 +544,11 @@ $("catpanel").onchange=e=>{
 };
 function rowHTML(t,cls,o){return `<tr class="${t.status==="Done"?"done":""}${t.kind==="business"?" biz":t.kind==="should"?" shd":""}${cls||""}" data-id="${t.id}">
     <td class="n"><span class="nm" data-open title="Open">${esc(t.name)}</span>${subBadge(t)}${o&&o.plan?`<div class="ptime"><input type="time" data-pt value="${esc(o.time||"")}" title="Start time (optional)"><span class="ptd">\u2013</span><input type="time" data-pe value="${esc(o.end||"")}" title="End time (optional)"></div>`:""}${t.remindAt?`<div class="rmi${new Date(t.remindAt)<new Date()?" past":""}">🔔 ${fmtRem(t.remindAt)}</div>`:""}</td>
+    <td class="c-st" data-l="Status"><select data-f="status" class="c" style="--h:${STH[t.status]}">${sopts(t.status)}</select></td>
     <td class="c-cat" data-l="Cat."><input class="pill catin" data-f="category" list="cats" value="${esc(t.category)}" style="--h:${catHue(t.category)};width:${Math.max(6,t.category.length+5)}ch"></td>
     <td class="c-term" data-l="Term"><select data-f="term" class="c" style="--h:${(t.term||"short")==="long"?335:175}"><option value="short"${(t.term||"short")==="short"?" selected":""}>Tactical</option><option value="long"${t.term==="long"?" selected":""}>Strategic</option></select></td>
     <td class="c-pri" data-l="Prio."><select data-f="priority" class="c pri${t.priority===0?" dk":""}" title="${esc(PRI[t.priority])}" style="--h:${PH[t.priority]};--d:${Math.max(0,38-10*t.priority)};--s:${PS[t.priority]}%">${opts(nums,t.priority)}</select><div class="ex">${esc(PRI[t.priority])}</div></td>
     <td class="c-sp" data-l="Spoons"><select data-f="spoons" class="c sp${t.spoons>=4?" hi":""}" title="${esc(SP[t.spoons])}" style="--t:${t.spoons/7}">${opts(nums,t.spoons)}</select><div class="ex">${esc(SP[t.spoons])}</div></td>
-    <td class="c-st" data-l="Status"><select data-f="status" class="c" style="--h:${STH[t.status]}">${sopts(t.status)}</select></td>
     <td class="c-kind" data-l="Type"><select data-f="kind" class="c kd ${{business:"kb",should:"ks",pleasure:"kp"}[kn(t)]}">${["business","should","pleasure"].map(v=>`<option value="${v}"${kn(t)===v?" selected":""}>${KL[v]}</option>`).join("")}</select></td>
     <td class="c-due" data-l="Due"><input type="date" data-f="due" class="dt${dcls(t)}" value="${t.due||""}"></td>
     <td class="del">${o&&o.plan?"":`<button class="x pin" data-pin title="Pin to a day">\u{1F4CC}</button>`}<button class="x edit" data-edit title="Edit">✎</button><button class="x bell${t.remindAt?" on":""}" data-bell title="Reminder">${t.remindAt?"🔔":"🔕"}</button>${o&&o.plan?`<button class="x" data-skip title="Skip to tomorrow">\u23ED</button><button class="x" data-px title="Remove from this day">×</button>`:`<button class="x" data-del title="Delete">×</button>`}</td></tr>`}
@@ -744,7 +744,7 @@ $("impgo").onclick=()=>{
   if(r.n){save();render();$("impt").value="";$("impf").value=""}
   $("impmsg").textContent=r.n?`Imported ${r.n} task${r.n===1?"":"s"}${r.skip?` (${r.skip} skipped: no task name)`:""}.`:"Nothing imported — check that the first row has headers like Task, Category, Priority.";
 };
-const COLS=[["cat","Category"],["term","Term"],["pri","Priority"],["sp","Spoons"],["st","Status"],["kind","Type"],["due","Date"]];
+const COLS=[["st","Status"],["cat","Category"],["term","Term"],["pri","Priority"],["sp","Spoons"],["kind","Type"],["due","Date"]];
 let hidCols=[];try{hidCols=JSON.parse(localStorage.getItem("spoon-cols-v1")||"[]")}catch(e){}
 $("cols").innerHTML=COLS.map(([k,n])=>`<label style="--h:150"><input type="checkbox" value="${k}">${n}</label>`).join("");
 function applyCols(){
