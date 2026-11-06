@@ -182,7 +182,7 @@ button.pin{font-size:14px;opacity:.55}
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v41</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v42</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -200,7 +200,7 @@ button.pin{font-size:14px;opacity:.55}
 <div><div style="font-size:12px;color:var(--mu);margin-bottom:3px">Status (none ticked = all)</div><div class="chips" id="fs"></div></div>
 <label>Term<select id="ft"><option value="">All</option><option value="short">Tactical</option><option value="long">Strategic</option></select></label>
 <label>Type<select id="fk"><option value="">All</option><option value="business">Business</option><option value="pleasure">Pleasure</option></select></label>
-<label>Pinned<select id="fp"><option value="">All</option><option value="any">Pinned to a day</option><option value="today">Pinned to today</option><option value="up">Pinned today or later</option><option value="none">Not pinned</option></select></label>
+<label>Pinned<select id="fp"><option value="">All</option><option value="any">Pinned to a day</option><option value="today">Pinned to today</option><option value="up">Pinned today or later</option><option value="notup">Unpinned or pinned before today</option><option value="none">Not pinned</option></select></label>
 <label>Date<select id="fd"><option value="">All dates</option><option value="overdue">Overdue</option><option value="today">Today</option><option value="tomorrow">Tomorrow</option><option value="week">Next 7 days</option><option value="none">No date</option><option value="date">Specific date…</option></select></label>
 <input type="date" id="fdv" hidden style="align-self:end">
 <label>Sort by<select id="sb">
@@ -550,7 +550,7 @@ function render(skip){
   const fc=$("fc").value,fs=[...$("fs").querySelectorAll("input:checked")].map(i=>i.value),sb=$("sb").value,dir=+$("sd").value;
   const fd=$("fd").value,ft=$("ft").value,fk=$("fk").value,fp=$("fp").value,today=inDays(0);
   const pinDates=id=>Object.keys(days).filter(k=>(days[k].ids||[]).includes(id));
-  const pinOk=t=>{if(!fp)return true;const p=pinDates(t.id);return fp==="any"?p.length>0:fp==="none"?!p.length:fp==="today"?p.includes(today):p.some(k=>k>=today)};
+  const pinOk=t=>{if(!fp)return true;const p=pinDates(t.id);return fp==="any"?p.length>0:fp==="none"?!p.length:fp==="today"?p.includes(today):fp==="notup"?!p.some(k=>k>=today):p.some(k=>k>=today)};
   $("fdv").hidden=fd!=="date";
   const dateOk=t=>!fd||(fd==="overdue"?!!t.due&&t.due<today&&t.status!=="Done":fd==="today"?t.due===today:fd==="tomorrow"?t.due===inDays(1):fd==="week"?!!t.due&&t.due>=today&&t.due<=inDays(7):fd==="none"?!t.due:fd==="date"?(!$("fdv").value||t.due===$("fdv").value):true);
   let list=tasks.filter(t=>(!fc||t.category===fc)&&(!fs.length||fs.includes(t.status))&&dateOk(t)&&(!ft||(t.term||"short")===ft)&&(!fk||(t.kind==="business"?"business":"pleasure")===fk)&&pinOk(t));
