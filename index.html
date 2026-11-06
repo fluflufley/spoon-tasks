@@ -177,6 +177,11 @@ tr.ut{background:color-mix(in srgb,hsl(35 25% 50%) 6%,transparent)}
 .hi .hn{flex:1;min-width:0;overflow-wrap:anywhere;cursor:pointer}
 .hi .x{padding:0 6px;line-height:1.2;margin-left:auto}
 button.pin{font-size:14px;opacity:.55}
+.hi.rt{background:hsl(150 38% var(--pl))}
+.rtc .pr{padding:6px 0}
+.rte{display:grid;grid-template-columns:70px 1fr auto;gap:6px;align-items:center;margin-bottom:12px}
+.rte [data-n]{grid-column:1/-1}
+.rte input,.rte select{min-width:0;width:100%}
 .hi.gc{background:hsl(210 55% var(--pl))}
 .hi.gc .hn{cursor:default}
 .hi.ad{background:hsl(210 55% var(--pl));display:inline-flex;margin:0 6px 6px 0;font-size:13px}
@@ -185,7 +190,7 @@ button.pin{font-size:14px;opacity:.55}
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v45</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v46</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -228,6 +233,8 @@ button.pin{font-size:14px;opacity:.55}
 <div class="card row" style="align-items:center">
 <button id="pPrev" title="Previous day">‹</button><input type="date" id="pDate"><button id="pNext" title="Next day">›</button><button id="pToday">Today</button>
 <b id="pLbl" style="margin-left:auto"></b></div>
+<div class="card rtc"><div class="row" style="align-items:center;margin:0 0 6px"><h3 style="margin:0">Daily routine</h3><button id="rtManage" style="margin-left:auto">Manage</button></div>
+<div id="rList"></div></div>
 <div class="card"><h3>Unscheduled tasks</h3>
 <div class="tw"><table id="ptbl"><thead><tr><th>Task</th><th class="c-cat">Category</th><th class="c-term">Term</th><th class="c-pri">Priority</th><th class="c-sp">Spoons</th><th class="c-st">Status</th><th class="c-kind">Type</th><th class="c-due">Date</th><th></th></tr></thead><tbody id="pb"></tbody></table></div>
 <div class="row" style="margin-top:10px"><button id="pNew">+ New task</button></div>
@@ -286,6 +293,14 @@ button.pin{font-size:14px;opacity:.55}
 <label>Reminder (optional)<input type="datetime-local" id="er"></label>
 <div class="row"><button type="button" class="p" id="eSave">Save</button><button type="button" data-close>Cancel</button></div>
 </form></div></dialog>
+
+<dialog id="dRoutine"><div class="dc">
+<div class="dh"><b>Daily routine</b><button type="button" class="x" data-close title="Close">×</button></div>
+<p class="sub" style="margin:0 0 10px">Things you do every day. They show up on every day from today on, with their own checkbox for each day.</p>
+<div id="rtEdit"></div>
+<div class="row"><button type="button" id="rtAdd">+ Add item</button></div>
+<div class="row" style="margin-top:10px"><button type="button" class="p" id="rtSave">Save</button><button type="button" data-close>Cancel</button></div>
+</div></dialog>
 
 <dialog id="dGcal"><div class="dc">
 <div class="dh"><b>Google Calendar</b><button type="button" class="x" data-close title="Close">×</button></div>
@@ -352,12 +367,12 @@ const KL={business:"Must",should:"Should",pleasure:"Want"};
 const kn=t=>t.kind==="business"?"business":t.kind==="should"?"should":"pleasure";
 const STATUSES=["To do","Scheduled","In progress","Waiting","Done"];
 const KEY="spoon-tasks-v1";
-let planAfterAdd=null,pinId=null,gcalClient="",gcalList=[],gcalSel=[];
+let planAfterAdd=null,pinId=null,gcalClient="",gcalList=[],gcalSel=[],routine=[];
 let tasks=[],nextId=1,catHues={},trash=[],days={},pDay="",view="tasks";
-try{const r=JSON.parse(localStorage.getItem(KEY)||"null");if(r&&Array.isArray(r.tasks)){tasks=r.tasks;nextId=r.nextId||tasks.length+1;catHues=r.catHues||{};trash=Array.isArray(r.trash)?r.trash:[];days=r.days&&typeof r.days==="object"?r.days:{};gcalClient=r.gcalClient||"";gcalList=Array.isArray(r.gcalList)?r.gcalList:[];gcalSel=Array.isArray(r.gcalSel)?r.gcalSel:[]}}catch(e){}
+try{const r=JSON.parse(localStorage.getItem(KEY)||"null");if(r&&Array.isArray(r.tasks)){tasks=r.tasks;nextId=r.nextId||tasks.length+1;catHues=r.catHues||{};trash=Array.isArray(r.trash)?r.trash:[];days=r.days&&typeof r.days==="object"?r.days:{};gcalClient=r.gcalClient||"";gcalList=Array.isArray(r.gcalList)?r.gcalList:[];gcalSel=Array.isArray(r.gcalSel)?r.gcalSel:[];routine=Array.isArray(r.routine)?r.routine:[]}}catch(e){}
 let dbDoc=null,wTimer=null,wBusy=false,wPending=false;
 function setSync(s){const el=document.getElementById("sync");if(el)el.textContent={local:"Saved on this device only",signin:"Not signed in — saved on this device only",saving:"Saving…",saved:"✓ Saved to your account",err:"Couldn't reach your account — saved on this device"}[s]}
-function snap(){return {tasks,nextId,catHues,trash,days,gcalClient,gcalList,gcalSel}}
+function snap(){return {tasks,nextId,catHues,trash,days,gcalClient,gcalList,gcalSel,routine}}
 function save(){
   try{localStorage.setItem(KEY,JSON.stringify(snap()))}catch(e){}
   if(dbDoc){setSync("saving");clearTimeout(wTimer);wTimer=setTimeout(flush,400)}
@@ -441,7 +456,7 @@ async function initStorage(){
         if(s.metadata.hasPendingWrites)return;
         if(s.exists()){
           const d=s.data();
-          tasks=Array.isArray(d.tasks)?d.tasks:[];nextId=d.nextId||tasks.length+1;catHues=d.catHues||{};trash=Array.isArray(d.trash)?d.trash:[];days=d.days&&typeof d.days==="object"?d.days:{};gcalClient=d.gcalClient||"";gcalList=Array.isArray(d.gcalList)?d.gcalList:[];gcalSel=Array.isArray(d.gcalSel)?d.gcalSel:[];
+          tasks=Array.isArray(d.tasks)?d.tasks:[];nextId=d.nextId||tasks.length+1;catHues=d.catHues||{};trash=Array.isArray(d.trash)?d.trash:[];days=d.days&&typeof d.days==="object"?d.days:{};gcalClient=d.gcalClient||"";gcalList=Array.isArray(d.gcalList)?d.gcalList:[];gcalSel=Array.isArray(d.gcalSel)?d.gcalSel:[];routine=Array.isArray(d.routine)?d.routine:[];
           try{localStorage.setItem(KEY,JSON.stringify(snap()))}catch(e){}
           dbDoc={set:x=>F.setDoc(ref,x)};setSync("saved");render();
         }else if(first){
@@ -737,12 +752,13 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(
 
 // ---- Daily plan ----
 function planDay(k){const d=days[k]||(days[k]={ids:[],desc:""});if(!Array.isArray(d.ids))d.ids=[];return d}
-function tidyDay(k){const d=days[k];if(d&&!(d.ids||[]).length&&!(d.ev||[]).length&&!(d.gcal||[]).length&&!(d.desc||"").trim())delete days[k]}
+function tidyDay(k){const d=days[k];if(d&&!(d.ids||[]).length&&!(d.ev||[]).length&&!(d.gcal||[]).length&&!Object.keys(d.rd||{}).length&&!(d.desc||"").trim())delete days[k]}
 function tmin(v){const m=/^(\d\d):(\d\d)$/.exec(v||"");return m?+m[1]*60+ +m[2]:null}
 function renderPlan(){
   if(!pDay)pDay=ymd(new Date());
   const d=days[pDay]||{ids:[],desc:""},times=d.times||{},evs=d.ev||[];
   const ids=(d.ids||[]).filter(id=>tasks.some(t=>t.id===id));
+  const rts=routine.filter(r=>!r.from||r.from<=pDay),rd=d.rd||{};
   $("pDate").value=pDay;
   const dt=new Date(pDay+"T00:00:00");
   $("pLbl").textContent=isNaN(dt)?"":dt.toLocaleDateString([],{weekday:"long",month:"short",day:"numeric"})+(pDay===ymd(new Date())?" · today":"");
@@ -752,14 +768,17 @@ function renderPlan(){
   const mk=(arr,c)=>arr.map(t=>rowHTML(t,c,{plan:1,time:times[t.id]||""})).join("");
   $("pb").innerHTML=ut.length?mk(ut," ut"):`<tr><td colspan="8" class="empty">${rows.length?"Everything today has a time.":"Nothing planned for this day yet."}</td></tr>`;
   $("pb2").innerHTML=mk(tm," tm");$("pSchedCard").hidden=!tm.length;
-  const open=rows.filter(t=>t.status!=="Done"),sp=open.reduce((a,t)=>a+(+t.spoons||0),0);
-  $("pSum").textContent=rows.length?`${rows.length-open.length} of ${rows.length} done · ${sp} spoon${sp===1?"":"s"} still to spend`:"";
+  const open=rows.filter(t=>t.status!=="Done"),rtOpen=rts.filter(r=>!rd[r.id]),sp=open.reduce((a,t)=>a+(+t.spoons||0),0)+rtOpen.reduce((a,r)=>a+(+r.spoons||0),0);
+  $("pSum").textContent=rows.length||rts.length?`${rows.length+rts.length-open.length-rtOpen.length} of ${rows.length+rts.length} done · ${sp} spoon${sp===1?"":"s"} still to spend`:"";
   const av=tasks.filter(t=>t.status!=="Done"&&!ids.includes(t.id)),due=av.filter(t=>t.due===pDay),oth=av.filter(t=>t.due!==pDay);
   const o=t=>`<option value="${t.id}">${esc(t.name)} (${t.spoons} \u{1F944})</option>`;
   $("pSel").innerHTML=`<option value="">Choose a task…</option>`+(due.length?`<optgroup label="Due this day">${due.map(o).join("")}</optgroup>`:"")+(oth.length?`<optgroup label="Other open tasks">${oth.map(o).join("")}</optgroup>`:"");
+  // daily routine
+  $("rList").innerHTML=rts.length?rts.map(r=>`<div class="pr${rd[r.id]?" dn":""}" data-rid="${r.id}"><input type="checkbox" data-rc${rd[r.id]?" checked":""}><span class="pn">${esc(r.name)}${r.time?` <span class="sub" style="margin:0;font-size:12px">${esc(r.time)}</span>`:""}</span><span class="pm">${r.spoons} \u{1F944}</span></div>`).join(""):`<div class="sub" style="margin:0">No daily routine yet. Tap Manage to add things you do every day.</div>`;
   // hourly view
   const items=[];
   rows.forEach(t=>{const m=tmin(times[t.id]);if(m!=null)items.push({m,html:`<div class="hi stc${t.status==="Done"?" dn":""}" style="--h:${STH[t.status]}" data-tid="${t.id}"><span class="ht">${times[t.id]}</span><span class="hn" data-ho>${esc(t.name)}</span><button type="button" class="x" data-hx title="Take off the timeline (keeps it on this day, no time)">×</button></div>`})});
+  rts.forEach(r=>{const m=tmin(r.time);if(m!=null)items.push({m,html:`<div class="hi rt${rd[r.id]?" dn":""}" title="Daily routine"><span class="ht">${r.time}</span><span class="hn">${esc(r.name)}</span></div>`})});
   evs.forEach(e=>{const m=tmin(e.time);if(m!=null)items.push({m,html:`<div class="hi ev" data-eid="${e.id}"><span class="ht">${e.time}</span><span class="hn">${esc(e.text)}</span><button type="button" class="x" data-ex title="Remove">×</button></div>`})});
   (d.gcal||[]).forEach(e=>{const m=tmin(e.time);if(m!=null)items.push({m,html:`<div class="hi gc" title="${esc(e.cal||"Google Calendar")}"${e.col?` style="border-left:4px solid ${esc(e.col)}"`:""}><span class="ht">${e.time}${e.end?"\u2013"+e.end:""}</span><span class="hn">${esc(e.text)}</span></div>`})});
   $("pAll").innerHTML=(d.gcal||[]).filter(e=>e.allDay).map(e=>`<span class="hi ad" title="${esc(e.cal||"Google Calendar")} (all day)"${e.col?` style="border-left:4px solid ${esc(e.col)}"`:""}><span class="ht">All day</span><span class="hn">${esc(e.text)}</span></span>`).join("");
@@ -903,6 +922,24 @@ const pbChange=e=>{
   rowChange(e);
 };
 $("pb").onclick=$("pb2").onclick=pbClick;$("pb").onchange=$("pb2").onchange=pbChange;
+// daily routine
+$("rList").onchange=e=>{
+  if(!e.target.hasAttribute("data-rc"))return;const id=e.target.closest("[data-rid]").dataset.rid,d=planDay(pDay);
+  d.rd=d.rd||{};if(e.target.checked)d.rd[id]=1;else delete d.rd[id];if(!Object.keys(d.rd).length)delete d.rd;tidyDay(pDay);save();renderPlan();
+};
+let rtDraft=[];
+function rtRows(){
+  $("rtEdit").innerHTML=rtDraft.map((r,i)=>`<div class="rte" data-i="${i}"><input data-n value="${esc(r.name)}" placeholder="e.g. Take meds"><select data-s>${[0,1,2,3,4,5,6,7].map(n=>`<option${n===+r.spoons?" selected":""}>${n}</option>`).join("")}</select><input type="time" data-t value="${esc(r.time||"")}"><button type="button" class="x" data-rm title="Remove">×</button></div>`).join("")||`<div class="sub" style="margin:0 0 8px">Nothing yet.</div>`;
+}
+function rtRead(){rtDraft=[...$("rtEdit").querySelectorAll(".rte")].map(el=>{const o=rtDraft[+el.dataset.i];return Object.assign({},o,{name:el.querySelector("[data-n]").value,spoons:+el.querySelector("[data-s]").value,time:el.querySelector("[data-t]").value})})}
+$("rtManage").onclick=()=>{rtDraft=routine.map(r=>Object.assign({},r));if(!rtDraft.length)rtDraft.push({name:"",spoons:1,time:""});rtRows();$("dRoutine").showModal()};
+$("rtAdd").onclick=()=>{rtRead();rtDraft.push({name:"",spoons:1,time:""});rtRows();const n=$("rtEdit").querySelectorAll("[data-n]");n[n.length-1].focus()};
+$("rtEdit").onclick=e=>{if(!e.target.hasAttribute("data-rm"))return;rtRead();rtDraft.splice(+e.target.closest(".rte").dataset.i,1);rtRows()};
+$("rtSave").onclick=()=>{
+  rtRead();const today=ymd(new Date());let n=0;
+  routine=rtDraft.filter(r=>(r.name||"").trim()).map(r=>({id:r.id||String(Date.now()+(n++)),name:r.name.trim(),spoons:r.spoons,time:r.time||"",from:r.from||today}));
+  save();$("dRoutine").close();render();
+};
 $("pHours").onclick=e=>{
   const hb=e.target.closest("[data-h]");if(hb){$("evT").value=pad(+hb.dataset.h)+":00";$("evX").focus();return}
   if(e.target.hasAttribute("data-hx")){const id=+e.target.closest("[data-tid]").dataset.tid,d=planDay(pDay);if(d.times)delete d.times[id];save();render();return}
