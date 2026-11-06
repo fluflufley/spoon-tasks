@@ -90,16 +90,19 @@ td[data-l]::before{font-size:10px;margin-bottom:1px}
 }
 table.h-cat .c-cat,table.h-term .c-term,table.h-kind .c-kind,table.h-pri .c-pri,table.h-sp .c-sp,table.h-st .c-st,table.h-due .c-due{display:none}
 select.c.kb{background:var(--kbb);color:var(--kbt);border-color:var(--kbb)}
+select.c.ks{background:color-mix(in srgb,var(--kbb) 26%,var(--bg));color:var(--tx);border-color:color-mix(in srgb,var(--kbb) 45%,var(--bg));font-weight:600}
 select.c.kp{background:var(--bg);color:var(--mu);border-color:var(--bd);font-weight:500}
 tr.biz td.n{box-shadow:inset 3px 0 0 var(--kbb)}
+tr.shd td.n{box-shadow:inset 3px 0 0 color-mix(in srgb,var(--kbb) 40%,var(--bg))}
 tr.gs td{border-top:3px solid var(--bd)}
 @media (max-width:640px){
 td.c-kind select.c{padding:4px 5px}
 td.c-due input.dt{width:116px;padding:4px 2px 4px 5px;font-size:14px}
 tbody tr.biz{box-shadow:inset 3px 0 0 var(--kbb);padding-left:8px}
+tbody tr.shd{box-shadow:inset 3px 0 0 color-mix(in srgb,var(--kbb) 40%,var(--bg));padding-left:8px}
 tbody tr.gs{border-top:3px solid var(--bd)}
 tr.gs td{border-top:none}
-tr.biz td.n{box-shadow:none}
+tr.biz td.n,tr.shd td.n{box-shadow:none}
 }
 @media (max-width:380px){
 td.c-st select.c,td.c-kind select.c{padding:4px 4px}
@@ -182,7 +185,7 @@ button.pin{font-size:14px;opacity:.55}
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v44</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v45</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -199,7 +202,7 @@ button.pin{font-size:14px;opacity:.55}
 <label>Category<select id="fc"></select></label>
 <div><div style="font-size:12px;color:var(--mu);margin-bottom:3px">Status (none ticked = all)</div><div class="chips" id="fs"></div></div>
 <label>Term<select id="ft"><option value="">All</option><option value="short">Tactical</option><option value="long">Strategic</option></select></label>
-<label>Type<select id="fk"><option value="">All</option><option value="business">Business</option><option value="pleasure">Pleasure</option></select></label>
+<label>Type<select id="fk"><option value="">All</option><option value="business">Must</option><option value="should">Should</option><option value="pleasure">Want</option></select></label>
 <label>Pinned<select id="fp"><option value="">All</option><option value="any">Pinned to a day</option><option value="today">Pinned to today</option><option value="up">Pinned today or later</option><option value="notup">Unplanned</option><option value="none">Not pinned</option></select></label>
 <label>Date<select id="fd"><option value="">All dates</option><option value="overdue">Overdue</option><option value="today">Today</option><option value="tomorrow">Tomorrow</option><option value="week">Next 7 days</option><option value="none">No date</option><option value="date">Specific date…</option></select></label>
 <input type="date" id="fdv" hidden style="align-self:end">
@@ -250,7 +253,7 @@ button.pin{font-size:14px;opacity:.55}
 <form id="f" class="fcol" onsubmit="return false">
 <label>Task<input id="name" placeholder="What needs doing?"></label>
 <label>Category<input id="cat" list="cats" placeholder="e.g. Home"></label>
-<label>Type<select id="kd"><option value="pleasure">Pleasure</option><option value="business">Business</option></select></label>
+<label>Type<select id="kd"><option value="business">Must</option><option value="should">Should</option><option value="pleasure">Want</option></select></label>
 <label>Term<select id="tm"><option value="short">Tactical</option><option value="long">Strategic</option></select></label>
 <label>Priority<select id="pri"></select></label>
 <label>Spoons<select id="sp"></select></label>
@@ -274,7 +277,7 @@ button.pin{font-size:14px;opacity:.55}
 <form id="fe" class="fcol" onsubmit="return false">
 <label>Task<input id="en"></label>
 <label>Category<input id="ec" list="cats"></label>
-<label>Type<select id="ek"><option value="pleasure">Pleasure</option><option value="business">Business</option></select></label>
+<label>Type<select id="ek"><option value="business">Must</option><option value="should">Should</option><option value="pleasure">Want</option></select></label>
 <label>Term<select id="et"><option value="short">Tactical</option><option value="long">Strategic</option></select></label>
 <label>Priority<select id="ep"></select></label>
 <label>Spoons<select id="es"></select></label>
@@ -315,7 +318,7 @@ button.pin{font-size:14px;opacity:.55}
 
 <dialog id="dImp"><div class="dc">
 <div class="dh"><b>Import tasks</b><button type="button" class="x" data-close title="Close">×</button></div>
-<p class="sub" style="margin:0 0 8px;font-size:13px">Use a CSV file (in Excel or Google Sheets: save/download as CSV), or copy the cells from your spreadsheet and paste them below. Put headers in the first row: Task, Category, Type (business or pleasure), Term, Priority, Spoons, Status, Date, Reminder (date and time). Only Task is required. Priority and spoons run 0–7, and dates work best as YYYY-MM-DD. Imported tasks are added to your existing ones.</p>
+<p class="sub" style="margin:0 0 8px;font-size:13px">Use a CSV file (in Excel or Google Sheets: save/download as CSV), or copy the cells from your spreadsheet and paste them below. Put headers in the first row: Task, Category, Type (must, should or want), Term, Priority, Spoons, Status, Date, Reminder (date and time). Only Task is required. Priority and spoons run 0–7, and dates work best as YYYY-MM-DD. Imported tasks are added to your existing ones.</p>
 <div class="fcol">
 <label>CSV file<input type="file" id="impf" accept=".csv,.tsv,.txt,text/csv"></label>
 <label>…or paste here<textarea id="impt" rows="6" style="font:inherit;font-size:16px;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:7px 9px;width:100%"></textarea></label>
@@ -345,6 +348,8 @@ button.pin{font-size:14px;opacity:.55}
 
 <script src="firebase-config.js"></script>
 <script>
+const KL={business:"Must",should:"Should",pleasure:"Want"};
+const kn=t=>t.kind==="business"?"business":t.kind==="should"?"should":"pleasure";
 const STATUSES=["To do","Scheduled","In progress","Waiting","Done"];
 const KEY="spoon-tasks-v1";
 let planAfterAdd=null,pinId=null,gcalClient="",gcalList=[],gcalSel=[];
@@ -512,14 +517,14 @@ $("catpanel").onchange=e=>{
   }
   render();
 };
-function rowHTML(t,cls,o){return `<tr class="${t.status==="Done"?"done":""}${t.kind==="business"?" biz":""}${cls||""}" data-id="${t.id}">
+function rowHTML(t,cls,o){return `<tr class="${t.status==="Done"?"done":""}${t.kind==="business"?" biz":t.kind==="should"?" shd":""}${cls||""}" data-id="${t.id}">
     <td class="n"><span class="nm" data-open title="Open">${esc(t.name)}</span>${subBadge(t)}${o&&o.plan?`<div class="ptime"><input type="time" data-pt value="${esc(o.time||"")}" title="Time on this day (optional)"></div>`:""}${t.remindAt?`<div class="rmi${new Date(t.remindAt)<new Date()?" past":""}">🔔 ${fmtRem(t.remindAt)}</div>`:""}</td>
     <td class="c-cat" data-l="Cat."><input class="pill catin" data-f="category" list="cats" value="${esc(t.category)}" style="--h:${catHue(t.category)};width:${Math.max(6,t.category.length+5)}ch"></td>
     <td class="c-term" data-l="Term"><select data-f="term" class="c" style="--h:${(t.term||"short")==="long"?335:175}"><option value="short"${(t.term||"short")==="short"?" selected":""}>Tactical</option><option value="long"${t.term==="long"?" selected":""}>Strategic</option></select></td>
     <td class="c-pri" data-l="Prio."><select data-f="priority" class="c pri${t.priority===0?" dk":""}" title="${esc(PRI[t.priority])}" style="--h:${PH[t.priority]};--d:${Math.max(0,38-10*t.priority)};--s:${PS[t.priority]}%">${opts(nums,t.priority)}</select><div class="ex">${esc(PRI[t.priority])}</div></td>
     <td class="c-sp" data-l="Spoons"><select data-f="spoons" class="c sp${t.spoons>=4?" hi":""}" title="${esc(SP[t.spoons])}" style="--t:${t.spoons/7}">${opts(nums,t.spoons)}</select><div class="ex">${esc(SP[t.spoons])}</div></td>
     <td class="c-st" data-l="Status"><select data-f="status" class="c" style="--h:${STH[t.status]}">${sopts(t.status)}</select></td>
-    <td class="c-kind" data-l="Type"><select data-f="kind" class="c kd ${t.kind==="business"?"kb":"kp"}"><option value="business"${t.kind==="business"?" selected":""}>Business</option><option value="pleasure"${t.kind!=="business"?" selected":""}>Pleasure</option></select></td>
+    <td class="c-kind" data-l="Type"><select data-f="kind" class="c kd ${{business:"kb",should:"ks",pleasure:"kp"}[kn(t)]}">${["business","should","pleasure"].map(v=>`<option value="${v}"${kn(t)===v?" selected":""}>${KL[v]}</option>`).join("")}</select></td>
     <td class="c-due" data-l="Due"><input type="date" data-f="due" class="dt${dcls(t)}" value="${t.due||""}"></td>
     <td class="del">${o&&o.plan?"":`<button class="x pin" data-pin title="Pin to a day">\u{1F4CC}</button>`}<button class="x edit" data-edit title="Edit">✎</button><button class="x bell${t.remindAt?" on":""}" data-bell title="Reminder">${t.remindAt?"🔔":"🔕"}</button>${o&&o.plan?`<button class="x" data-skip title="Skip to tomorrow">\u23ED</button><button class="x" data-px title="Remove from this day">×</button>`:`<button class="x" data-del title="Delete">×</button>`}</td></tr>`}
 // A "To do" task pinned to today-or-later with a time becomes "Scheduled" (and goes back if that slot is removed).
@@ -553,7 +558,7 @@ function render(skip){
   const pinOk=t=>{if(!fp)return true;const p=pinDates(t.id);return fp==="any"?p.length>0:fp==="none"?!p.length:fp==="today"?p.includes(today):fp==="notup"?!p.some(k=>k>=today):p.some(k=>k>=today)};
   $("fdv").hidden=fd!=="date";
   const dateOk=t=>!fd||(fd==="overdue"?!!t.due&&t.due<today&&t.status!=="Done":fd==="today"?t.due===today:fd==="tomorrow"?t.due===inDays(1):fd==="week"?!!t.due&&t.due>=today&&t.due<=inDays(7):fd==="none"?!t.due:fd==="date"?(!$("fdv").value||t.due===$("fdv").value):true);
-  let list=tasks.filter(t=>(!fc||t.category===fc)&&(!fs.length||fs.includes(t.status))&&dateOk(t)&&(!ft||(t.term||"short")===ft)&&(!fk||(t.kind==="business"?"business":"pleasure")===fk)&&pinOk(t));
+  let list=tasks.filter(t=>(!fc||t.category===fc)&&(!fs.length||fs.includes(t.status))&&dateOk(t)&&(!ft||(t.term||"short")===ft)&&(!fk||kn(t)===fk)&&pinOk(t));
   const DL={priority:["0 → 7","7 → 0"],spoons:["0 → 7","7 → 0"],status:["To do first","Done first"],due:["Soonest first","Latest first"],term:["Tactical first","Strategic first"]}[sb]||["Default","Reversed"];
   $("sd").options[0].text=DL[0];$("sd").options[1].text=DL[1];$("sd").disabled=!sb;
   if(sb==="due"){list=[...list].sort((a,b)=>{if(!a.due!==!b.due)return a.due?-1:1;return ((a.due||"").localeCompare(b.due||"")||a.id-b.id)*(-dir)})}
@@ -562,9 +567,9 @@ function render(skip){
     const ch={priority:[t=>t.priority,t=>t.spoons,si],spoons:[t=>t.spoons,t=>t.priority,si],status:[si,t=>t.priority,t=>t.spoons],term:[ti,t=>t.priority,t=>t.spoons,si]}[sb];
     list=[...list].sort((a,b)=>{for(const f of ch){const x=f(a)-f(b);if(x)return x*(-dir)}return a.id-b.id});
   }
-  // Group order: 0 business (always first, whatever the date), 1 pleasure due now/overdue/undated, 3 pleasure due after today.
+  // Group order: 0 Must (always first, whatever the date), then Should and Want due now/overdue/undated, then Should and Want due after today.
   // (An explicit sort by Date keeps its own order, so only the business-first rule applies then.)
-  const grp=t=>t.kind==="business"?0:(sb!=="due"&&t.due&&t.due>today?3:1);
+  const grp=t=>{const k=kn(t);if(k==="business")return 0;const r=k==="should"?1:2;return sb!=="due"&&t.due&&t.due>today?r+2:r};
   list=[...list].sort((a,b)=>grp(a)-grp(b));
   $("tb").innerHTML=list.length?list.map((t,i)=>rowHTML(t,i>0&&grp(t)!==grp(list[i-1])?" gs":"")).join("")
     :`<tr><td colspan="8" class="empty">${tasks.length?"No tasks match these filters.":"No tasks yet — add your first one above."}</td></tr>`;
@@ -603,7 +608,7 @@ $("trashList").onclick=e=>{const k=e.target.dataset&&e.target.dataset.rs;if(!k)r
 let editId=null;
 function openEdit(id){
   const t=tasks.find(x=>x.id===id);if(!t)return;
-  editId=id;$("en").value=t.name;$("ec").value=t.category;$("et").value=t.term==="long"?"long":"short";$("ek").value=t.kind==="business"?"business":"pleasure";
+  editId=id;$("en").value=t.name;$("ec").value=t.category;$("et").value=t.term==="long"?"long":"short";$("ek").value=kn(t);
   $("ep").value=t.priority;$("es").value=t.spoons;$("est").value=t.status;$("ed").value=t.due||"";$("er").value=toLocalInput(t.remindAt);
   $("dEdit").showModal();
 }
@@ -614,7 +619,7 @@ function openDet(id){if(!tasks.some(x=>x.id===id))return;detId=id;renderDet();$(
 function renderDet(){
   const t=tasks.find(x=>x.id===detId);if(!t){if($("dDet").open)$("dDet").close();return}
   $("detTitle").textContent=t.name;
-  const bits=[(t.kind==="business"?"Business":"Pleasure"),t.category,(t.term==="long"?"Strategic":"Tactical"),"Priority "+t.priority,t.spoons+" spoon"+(t.spoons===1?"":"s"),sl(t.status)];
+  const bits=[KL[kn(t)],t.category,(t.term==="long"?"Strategic":"Tactical"),"Priority "+t.priority,t.spoons+" spoon"+(t.spoons===1?"":"s"),sl(t.status)];
   if(t.due)bits.push("Due "+t.due);if(t.remindAt)bits.push("\u{1F514} "+fmtRem(t.remindAt));
   $("detInfo").textContent=bits.join(" \u00B7 ");
   const subs=t.subs||[],d=subs.filter(x=>x.d).length;
@@ -702,7 +707,7 @@ function importRows(rows){
   body.forEach(r=>{
     const o={};map.forEach((k,i)=>{if(k&&o[k]==null)o[k]=(r[i]||"").trim()});
     if(!o.name){skip++;return}
-    tasks.push({id:nextId++,name:o.name,category:o.category||"General",priority:num(o.priority,4),spoons:num(o.spoons,3),status:stat(o.status),kind:/bus|work/i.test(o.kind||"")?"business":"pleasure",remindAt:rem(o.remind),due:date(o.due),term:/long|strateg/i.test(o.term||"")?"long":"short"});n++;
+    tasks.push({id:nextId++,name:o.name,category:o.category||"General",priority:num(o.priority,4),spoons:num(o.spoons,3),status:stat(o.status),kind:/must|bus|work/i.test(o.kind||"")?"business":/should/i.test(o.kind||"")?"should":"pleasure",remindAt:rem(o.remind),due:date(o.due),term:/long|strateg/i.test(o.term||"")?"long":"short"});n++;
   });
   return {n,skip};
 }
@@ -742,7 +747,7 @@ function renderPlan(){
   const dt=new Date(pDay+"T00:00:00");
   $("pLbl").textContent=isNaN(dt)?"":dt.toLocaleDateString([],{weekday:"long",month:"short",day:"numeric"})+(pDay===ymd(new Date())?" · today":"");
   const key=id=>tmin(times[id])==null?1e4:tmin(times[id]);
-  const rows=ids.map((id,i)=>[tasks.find(t=>t.id===id),i]).sort((x,y)=>key(x[0].id)-key(y[0].id)||(x[0].kind==="business"?0:1)-(y[0].kind==="business"?0:1)||x[0].priority-y[0].priority||x[0].spoons-y[0].spoons||x[1]-y[1]).map(x=>x[0]);
+  const rows=ids.map((id,i)=>[tasks.find(t=>t.id===id),i]).sort((x,y)=>key(x[0].id)-key(y[0].id)||({business:0,should:1,pleasure:2}[kn(x[0])])-({business:0,should:1,pleasure:2}[kn(y[0])])||x[0].priority-y[0].priority||x[0].spoons-y[0].spoons||x[1]-y[1]).map(x=>x[0]);
   const hasT=t=>tmin(times[t.id])!=null,tm=rows.filter(hasT),ut=rows.filter(t=>!hasT(t));
   const mk=(arr,c)=>arr.map(t=>rowHTML(t,c,{plan:1,time:times[t.id]||""})).join("");
   $("pb").innerHTML=ut.length?mk(ut," ut"):`<tr><td colspan="8" class="empty">${rows.length?"Everything today has a time.":"Nothing planned for this day yet."}</td></tr>`;
