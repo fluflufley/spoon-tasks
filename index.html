@@ -143,6 +143,12 @@ table.show-ex .ex{display:block}
 
 .tabs{display:flex;gap:6px;margin:0 0 12px}
 .tabs button{flex:1;padding:9px;font-weight:600;color:var(--mu)}
+.both .wrap{max-width:1700px}
+@media (min-width:1000px){
+.both #views{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px;align-items:start}
+.both #vTasks,.both #vPlan{max-height:calc(100vh - 150px);overflow-y:auto;padding-right:6px}
+}
+@media (max-width:999px){.both #vPlan{margin-top:14px;padding-top:14px;border-top:3px solid var(--bd)}}
 .tabs button.on{background:var(--ac);border-color:var(--ac);color:#fff}
 textarea{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:9px;width:100%;resize:vertical}
 .card h3{margin:0 0 8px;font-size:16px}
@@ -195,12 +201,42 @@ button.pin{font-size:14px;opacity:.55}
 .hi.gc{background:hsl(210 55% var(--pl))}
 .hi.gc .hn{cursor:default}
 .hi.ad{background:hsl(210 55% var(--pl));display:inline-flex;margin:0 6px 6px 0;font-size:13px}
+
+/* Both view on wide screens: use the compact phone-style rows so each table fits its half */
+@media (min-width:1000px){
+.both thead{display:none}
+.both tbody tr{display:flex;flex-wrap:wrap;align-items:flex-end;gap:6px 10px;padding:10px 4px;border-bottom:1px solid var(--bd);position:relative}
+.both td{border:none;padding:0}
+.both td.n{flex:1 0 100%;width:auto;min-width:0;font-weight:600;padding-right:100px}
+.both td[data-l]::before{content:attr(data-l);display:block;font-size:11px;color:var(--mu);margin-bottom:2px}
+.both td input.dt{width:auto}
+.both td.del{position:absolute;top:6px;right:0}
+.both td.empty{flex:1 0 100%}
+.both .ex{max-width:none}
+.both tbody tr{gap:6px 5px}
+.both td select.c{-webkit-appearance:none;appearance:none;background-image:none;padding:4px 9px;text-align:center;text-align-last:center;width:auto}
+.both td select.c[data-f=priority],.both td select.c[data-f=spoons]{width:2.3em;padding:4px 0}
+.both td.c-st select.c{padding:4px 8px}
+.both td input.catin{max-width:9em;padding:2px 7px}
+.both td.c-term select.c,.both td.c-st select.c{padding:4px 5px}
+.both td[data-l]::before{font-size:10px;margin-bottom:1px}
+.both td.c-kind select.c{padding:4px 5px}
+.both td.c-due input.dt{width:116px;padding:4px 2px 4px 5px;font-size:14px}
+.both tbody tr.biz{box-shadow:inset 3px 0 0 var(--kbb);padding-left:8px}
+.both tbody tr.shd{box-shadow:inset 3px 0 0 color-mix(in srgb,var(--kbb) 40%,var(--bg));padding-left:8px}
+.both tbody tr.gs{border-top:3px solid var(--bd)}
+.both tr.gs td{border-top:none}
+.both tr.biz td.n,.both tr.shd td.n{box-shadow:none}
+.both tbody tr.ghd{display:block;border:0;padding:10px 4px 2px}
+.both tbody tr.tm,.both tbody tr.ut{border-radius:10px;margin-bottom:6px;padding-left:10px;padding-right:10px}
+.both td.c-due input.dt{width:116px}
+}
 </style>
 </head>
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v49</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v51</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -209,7 +245,8 @@ button.pin{font-size:14px;opacity:.55}
 <label class="grow">Password<input id="pw" type="password" autocomplete="current-password"></label>
 <button class="p" id="si">Sign in</button><button id="su">Create account</button>
 </div><div id="autherr" class="sub" style="margin:8px 0 0;color:#c0392b"></div></div>
-<div class="tabs"><button id="tabT" class="on">Tasks</button><button id="tabP">Daily plan</button></div>
+<div class="tabs"><button id="tabT" class="on">Tasks</button><button id="tabP">Daily plan</button><button id="tabB">Both</button></div>
+<div id="views">
 <div id="vTasks">
 <div class="bar"><button class="p" id="bAdd">+ Add task</button><button id="bImp">Import</button><button id="bSet">⚙ Customize</button></div>
 
@@ -260,6 +297,7 @@ button.pin{font-size:14px;opacity:.55}
 <div class="tw"><table id="ptbl2"><thead><tr><th>Task</th><th class="c-st">Status</th><th class="c-cat">Category</th><th class="c-term">Term</th><th class="c-pri">Priority</th><th class="c-sp">Spoons</th><th class="c-kind">Type</th><th class="c-due">Date</th><th></th></tr></thead><tbody id="pb2"></tbody></table></div></div>
 <div class="card"><h3>Description</h3>
 <textarea id="pDesc" rows="7" placeholder="What happens on this day? Plans, appointments, how you want it to feel…"></textarea></div>
+</div>
 </div>
 </div>
 
@@ -900,13 +938,14 @@ $("gcSave").onclick=()=>{const v=$("gcId").value.trim();if(!v){$("gcId").focus()
 $("gcClear").onclick=()=>{gcalClient="";gcalList=[];gcalSel=[];gTok=null;for(const k of Object.keys(days)){delete days[k].gcal;tidyDay(k)}save();render();gMsg("");$("dGcal").close()};
 showGLast();
 function setView(v){
-  view=v;$("vTasks").hidden=v!=="tasks";$("vPlan").hidden=v!=="plan";
-  $("tabT").classList.toggle("on",v==="tasks");$("tabP").classList.toggle("on",v==="plan");
+  view=v;$("vTasks").hidden=v==="plan";$("vPlan").hidden=v==="tasks";
+  $("tabT").classList.toggle("on",v==="tasks");$("tabP").classList.toggle("on",v==="plan");$("tabB").classList.toggle("on",v==="both");
+  document.body.classList.toggle("both",v==="both");
   try{localStorage.setItem("spoon-view-v1",v)}catch(e){}
-  if(v==="plan")renderPlan();
+  if(v!=="tasks")renderPlan();
 }
 function goDay(k){if(!k)return;pDay=k;renderPlan()}
-$("tabT").onclick=()=>setView("tasks");$("tabP").onclick=()=>setView("plan");
+$("tabT").onclick=()=>setView("tasks");$("tabP").onclick=()=>setView("plan");$("tabB").onclick=()=>setView("both");
 $("pPrev").onclick=()=>{const d=new Date(pDay+"T00:00:00");d.setDate(d.getDate()-1);goDay(ymd(d))};
 $("pNext").onclick=()=>{const d=new Date(pDay+"T00:00:00");d.setDate(d.getDate()+1);goDay(ymd(d))};
 $("pToday").onclick=()=>goDay(ymd(new Date()));
@@ -992,7 +1031,7 @@ $("pinSave").onclick=()=>{
 $("pinList").onclick=e=>{const k=e.target.dataset&&e.target.dataset.unpin;if(!k)return;const d=days[k];if(!d)return;d.ids=d.ids.filter(x=>x!==pinId);if(d.times)delete d.times[pinId];tidyDay(k);save();render();renderPinList()};
 $("pDesc").oninput=()=>{const d=planDay(pDay);d.desc=$("pDesc").value;tidyDay(pDay);save()};
 let _v="tasks";try{_v=localStorage.getItem("spoon-view-v1")||"tasks"}catch(e){}
-setView(_v==="plan"?"plan":"tasks");
+setView(_v==="plan"||_v==="both"?_v:"tasks");
 </script>
 </body>
 </html>
