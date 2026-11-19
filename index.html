@@ -183,6 +183,14 @@ tr.ut{background:color-mix(in srgb,hsl(35 25% 50%) 6%,transparent)}
 .hi .hn{flex:1;min-width:0;overflow-wrap:anywhere;cursor:pointer}
 .hi .x{padding:0 6px;line-height:1.2;margin-left:auto}
 button.pin{font-size:14px;opacity:.55}
+.dg{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;color:var(--mu);padding:2px 6px 2px 0;font-size:15px;line-height:1}
+body:not(.both) #vTasks .dg{display:none}
+.tl .dg{padding-right:4px}
+.ghost{position:fixed;z-index:9999;pointer-events:none;background:var(--ac);color:#fff;padding:6px 12px;border-radius:10px;font-size:14px;max-width:60vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.3);opacity:.94}
+body.dragging{cursor:grabbing;user-select:none;-webkit-user-select:none}
+.dropok{outline:3px dashed var(--ac);outline-offset:-3px;border-radius:10px}
+.dropl{position:absolute;left:54px;right:0;height:0;border-top:2px solid var(--ac);z-index:5;pointer-events:none}
+.dropl span{position:absolute;right:0;top:-18px;background:var(--ac);color:#fff;font-size:11px;padding:1px 6px;border-radius:6px}
 .tl{position:relative;margin-top:2px}
 .tl .tlh{position:absolute;left:0;right:0;height:46px;border:0;border-top:1px solid var(--bd);border-radius:0;background:none;text-align:left;vertical-align:top;padding:3px 0 0;font-size:12px;color:var(--mu);cursor:pointer;box-shadow:none}
 .tl .hi{position:absolute;box-sizing:border-box;overflow:hidden;align-items:flex-start;padding:3px 6px;line-height:1.25;font-size:13px}
@@ -236,7 +244,7 @@ button.pin{font-size:14px;opacity:.55}
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v51</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v52</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -282,7 +290,7 @@ button.pin{font-size:14px;opacity:.55}
 <b id="pLbl" style="margin-left:auto"></b></div>
 <div class="card rtc"><div class="row" style="align-items:center;margin:0 0 6px"><h3 style="margin:0">Daily routine</h3><button id="rtManage" style="margin-left:auto">Manage</button></div>
 <div id="rList"></div></div>
-<div class="card"><h3>Unscheduled tasks</h3>
+<div class="card" id="pUnCard"><h3>Unscheduled tasks</h3>
 <div class="tw"><table id="ptbl"><thead><tr><th>Task</th><th class="c-st">Status</th><th class="c-cat">Category</th><th class="c-term">Term</th><th class="c-pri">Priority</th><th class="c-sp">Spoons</th><th class="c-kind">Type</th><th class="c-due">Date</th><th></th></tr></thead><tbody id="pb"></tbody></table></div>
 <div class="row" style="margin-top:10px"><button id="pNew">+ New task</button></div>
 <div class="row" style="margin-top:10px"><label class="grow">Add existing task to this day<select id="pSel"></select></label><button class="p" id="pAddBtn">Add</button></div>
@@ -581,7 +589,7 @@ $("catpanel").onchange=e=>{
   render();
 };
 function rowHTML(t,cls,o){return `<tr class="${t.status==="Done"?"done":""}${t.kind==="business"?" biz":t.kind==="should"?" shd":""}${cls||""}" data-id="${t.id}">
-    <td class="n"><span class="nm" data-open title="Open">${esc(t.name)}</span>${subBadge(t)}${o&&o.plan?`<div class="ptime"><input type="time" data-pt value="${esc(o.time||"")}" title="Start time (optional)"><span class="ptd">\u2013</span><input type="time" data-pe value="${esc(o.end||"")}" title="End time (optional)"></div>`:""}${t.remindAt?`<div class="rmi${new Date(t.remindAt)<new Date()?" past":""}">🔔 ${fmtRem(t.remindAt)}</div>`:""}</td>
+    <td class="n"><span class="dg" data-drag="task" data-id="${t.id}" title="Drag onto a day or the timeline">⠿</span><span class="nm" data-open title="Open">${esc(t.name)}</span>${subBadge(t)}${o&&o.plan?`<div class="ptime"><input type="time" data-pt value="${esc(o.time||"")}" title="Start time (optional)"><span class="ptd">\u2013</span><input type="time" data-pe value="${esc(o.end||"")}" title="End time (optional)"></div>`:""}${t.remindAt?`<div class="rmi${new Date(t.remindAt)<new Date()?" past":""}">🔔 ${fmtRem(t.remindAt)}</div>`:""}</td>
     <td class="c-st" data-l="Status"><select data-f="status" class="c" style="--h:${STH[t.status]}">${sopts(t.status)}</select></td>
     <td class="c-cat" data-l="Cat."><input class="pill catin" data-f="category" list="cats" value="${esc(t.category)}" style="--h:${catHue(t.category)};width:${Math.max(6,t.category.length+5)}ch"></td>
     <td class="c-term" data-l="Term"><select data-f="term" class="c" style="--h:${(t.term||"short")==="long"?335:175}"><option value="short"${(t.term||"short")==="short"?" selected":""}>Tactical</option><option value="long"${t.term==="long"?" selected":""}>Strategic</option></select></td>
@@ -826,10 +834,10 @@ function renderPlan(){
   // hourly view
   const items=[];
   const add=(st,en,cls,inner,extra)=>{const sm=tmin(st);if(sm==null)return;let em=tmin(en);if(em==null||em<=sm)em=null;items.push({s:sm,e:em,v:Math.min(1440,Math.max(em==null?sm:em,sm+30)),cls,inner,extra:extra||""})};
-  const rng=(st,en)=>`<span class="ht">${st}${en&&tmin(en)>tmin(st)?"\u2013"+en:""}</span>`;
-  rows.forEach(t=>add(times[t.id],ends[t.id],`stc${t.status==="Done"?" dn":""}`,`${rng(times[t.id],ends[t.id])}<span class="hn" data-ho>${esc(t.name)}</span><button type="button" class="x" data-hx title="Take off the timeline (keeps it on this day, no time)">×</button>`,`data-tid="${t.id}" style="--h:${STH[t.status]}`));
+  const rng=(st,en,hd)=>`<span class="ht">${hd||""}${st}${en&&tmin(en)>tmin(st)?"\u2013"+en:""}</span>`;
+  rows.forEach(t=>add(times[t.id],ends[t.id],`stc${t.status==="Done"?" dn":""}`,`${rng(times[t.id],ends[t.id],`<span class="dg" data-drag="task" data-id="${t.id}" title="Drag to move">⠿</span>`)}<span class="hn" data-ho>${esc(t.name)}</span><button type="button" class="x" data-hx title="Take off the timeline (keeps it on this day, no time)">×</button>`,`data-tid="${t.id}" style="--h:${STH[t.status]}`));
   rts.forEach(r=>add(r.time,r.end,`rt${rd[r.id]?" dn":""}`,`${rng(r.time,r.end)}<span class="hn">${esc(r.name)}</span>`,`title="Daily routine"`));
-  evs.forEach(e=>add(e.time,e.end,"ev",`${rng(e.time,e.end)}<span class="hn">${esc(e.text)}</span><button type="button" class="x" data-ex title="Remove">×</button>`,`data-eid="${e.id}"`));
+  evs.forEach(e=>add(e.time,e.end,"ev",`${rng(e.time,e.end,`<span class="dg" data-drag="ev" data-id="${e.id}" title="Drag to move">⠿</span>`)}<span class="hn">${esc(e.text)}</span><button type="button" class="x" data-ex title="Remove">×</button>`,`data-eid="${e.id}"`));
   (d.gcal||[]).forEach(e=>add(e.time,e.end,"gc",`${rng(e.time,e.end)}<span class="hn">${esc(e.text)}</span>`,`title="${esc(e.cal||"Google Calendar")}"${e.col?` style="border-left:4px solid ${esc(e.col)}`:""}`));
   $("pAll").innerHTML=(d.gcal||[]).filter(e=>e.allDay).map(e=>`<span class="hi ad" title="${esc(e.cal||"Google Calendar")} (all day)"${e.col?` style="border-left:4px solid ${esc(e.col)}"`:""}><span class="ht">All day</span><span class="hn">${esc(e.text)}</span></span>`).join("");
   let lo=6,hi=23;items.forEach(x=>{lo=Math.min(lo,Math.floor(x.s/60));hi=Math.max(hi,Math.min(23,Math.ceil(x.v/60)-1))});
@@ -847,7 +855,7 @@ function renderPlan(){
     if(m){st=m[1]+";"+pos;ex=ex.slice(0,m.index)}
     h+=`<div class="hi ${it.cls}${ht>=44?" tall":""}" ${ex} style="${st}">${it.inner}</div>`;
   });
-  $("pHours").innerHTML=`<div class="tl" style="height:${(hi-lo+1)*H}px">${h}</div>`;
+  $("pHours").innerHTML=`<div class="tl" data-lo="${lo}" style="height:${(hi-lo+1)*H}px">${h}</div>`;
   if(document.activeElement!==$("pDesc")&&$("pDesc").value!==(d.desc||""))$("pDesc").value=d.desc||"";
 }
 // ---- Google Calendar (read-only) ----
@@ -1004,6 +1012,68 @@ $("rtSave").onclick=()=>{
   routine=rtDraft.filter(r=>(r.name||"").trim()).map(r=>({id:r.id||String(Date.now()+(n++)),name:r.name.trim(),spoons:r.spoons,time:r.time||"",end:r.time&&r.end&&tmin(r.end)>tmin(r.time)?r.end:"",from:r.from||today}));
   save();$("dRoutine").close();render();
 };
+// ---- Drag and drop (pointer based, works with touch via the ⠿ handle) ----
+let drag=null;
+const hm=m=>pad(Math.floor(m/60))+":"+pad(m%60);
+function dropInfo(x,y){
+  const el=document.elementFromPoint(x,y);if(!el||$("vPlan").hidden)return null;
+  const tl=el.closest(".tl");
+  if(tl){const lo=+tl.dataset.lo,r=tl.getBoundingClientRect();let m=Math.round((lo*60+(y-r.top)/46*60)/15)*15;m=Math.max(0,Math.min(1425,m));return {z:"tl",el:tl,m,top:(m-lo*60)*46/60}}
+  const z=el.closest("#vPlan");return z?{z:"day",el:$("pUnCard")}:null;
+}
+function dragMark(info){
+  document.querySelectorAll(".dropok").forEach(e=>e.classList.remove("dropok"));
+  const old=document.querySelector(".dropl");
+  if(!info){if(old)old.remove();return}
+  if(info.z==="day"){if(old)old.remove();info.el.classList.add("dropok");return}
+  info.el.classList.add("dropok");
+  let l=old;if(!l||l.parentNode!==info.el){if(old)old.remove();l=document.createElement("div");l.className="dropl";l.innerHTML="<span></span>";info.el.appendChild(l)}
+  l.style.top=info.top+"px";l.firstChild.textContent=hm(info.m);
+}
+document.addEventListener("pointerdown",e=>{
+  const h=e.target.closest&&e.target.closest("[data-drag]");if(!h||e.button>0)return;
+  e.preventDefault();
+  const row=h.closest("tr,.hi");
+  const label=(row&&(row.querySelector(".nm,.hn")||{}).textContent)||"Task";
+  drag={kind:h.dataset.drag,id:h.dataset.id,fromTl:!!h.closest(".tl"),x:e.clientX,y:e.clientY,on:false,label:label.trim()};
+  try{h.setPointerCapture(e.pointerId)}catch(x){}
+});
+document.addEventListener("pointermove",e=>{
+  if(!drag)return;
+  if(!drag.on){if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<6)return;
+    drag.on=true;document.body.classList.add("dragging");
+    drag.g=document.createElement("div");drag.g.className="ghost";drag.g.textContent=drag.label;document.body.appendChild(drag.g)}
+  drag.g.style.left=(e.clientX+12)+"px";drag.g.style.top=(e.clientY+12)+"px";
+  drag.info=dropInfo(e.clientX,e.clientY);dragMark(drag.info);
+  const H=70;if(e.clientY<H)scrollAt(e.clientX,e.clientY,-14);else if(e.clientY>innerHeight-H)scrollAt(e.clientX,e.clientY,14);
+});
+function scrollAt(x,y,dy){
+  const els=document.elementsFromPoint(x,y);
+  for(const el of els){if(el.id==="vPlan"||el.id==="vTasks"){if(el.scrollHeight>el.clientHeight+2){el.scrollTop+=dy;return}}}
+  window.scrollBy(0,dy);
+}
+function endDrag(drop){
+  if(!drag)return;const d0=drag;drag=null;
+  document.body.classList.remove("dragging");if(d0.g)d0.g.remove();dragMark(null);
+  if(!d0.on||!drop)return;
+  const info=drop;
+  if(d0.kind==="task"){
+    const id=+d0.id,t=tasks.find(x=>x.id===id);if(!t)return;
+    const d=planDay(pDay);if(!d.ids.includes(id))d.ids.push(id);
+    if(info.z==="tl"){
+      const old=d.times&&d.times[id],oe=d.ends&&d.ends[id],dur=old&&oe?tmin(oe)-tmin(old):0;
+      d.times=d.times||{};d.times[id]=hm(info.m);
+      if(dur>0){d.ends=d.ends||{};d.ends[id]=hm(Math.min(1439,info.m+dur))}else if(d.ends)delete d.ends[id];
+    }else if(d0.fromTl){if(d.times)delete d.times[id];if(d.ends)delete d.ends[id]}
+    save();render();
+  }else if(d0.kind==="ev"&&info.z==="tl"){
+    const d=planDay(pDay),e=(d.ev||[]).find(x=>String(x.id)===d0.id);if(!e)return;
+    const dur=e.end?tmin(e.end)-tmin(e.time):0;e.time=hm(info.m);e.end=dur>0?hm(Math.min(1439,info.m+dur)):"";
+    save();render();
+  }
+}
+document.addEventListener("pointerup",e=>{if(drag)endDrag(drag.on?dropInfo(e.clientX,e.clientY):null)});
+document.addEventListener("pointercancel",()=>{if(drag)endDrag(null)});
 $("pHours").onclick=e=>{
   const hb=e.target.closest("[data-h]");if(hb){$("evT").value=pad(+hb.dataset.h)+":00";$("evX").focus();return}
   if(e.target.hasAttribute("data-hx")){const id=+e.target.closest("[data-tid]").dataset.tid,d=planDay(pDay);if(d.times)delete d.times[id];if(d.ends)delete d.ends[id];save();render();return}
