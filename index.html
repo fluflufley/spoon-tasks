@@ -262,7 +262,7 @@ body.dragging{cursor:grabbing;user-select:none;-webkit-user-select:none}
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v53</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v54</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -451,6 +451,7 @@ const KEY="spoon-tasks-v1";
 let planAfterAdd=null,pinId=null,gcalClient="",gcalList=[],gcalSel=[],routine=[];
 let tasks=[],nextId=1,catHues={},trash=[],days={},pDay="",view="tasks";
 try{const r=JSON.parse(localStorage.getItem(KEY)||"null");if(r&&Array.isArray(r.tasks)){tasks=r.tasks;nextId=r.nextId||tasks.length+1;catHues=r.catHues||{};trash=Array.isArray(r.trash)?r.trash:[];days=r.days&&typeof r.days==="object"?r.days:{};gcalClient=r.gcalClient||"";gcalList=Array.isArray(r.gcalList)?r.gcalList:[];gcalSel=Array.isArray(r.gcalSel)?r.gcalSel:[];routine=Array.isArray(r.routine)?r.routine:[]}}catch(e){}
+if(migPri(tasks)|migPri(trash)){try{localStorage.setItem(KEY,JSON.stringify(snap()))}catch(e){}}
 let dbDoc=null,wTimer=null,wBusy=false,wPending=false;
 function setSync(s){const el=document.getElementById("sync");if(el)el.textContent={local:"Saved on this device only",signin:"Not signed in — saved on this device only",saving:"Saving…",saved:"✓ Saved to your account",err:"Couldn't reach your account — saved on this device"}[s]}
 function snap(){return {tasks,nextId,catHues,trash,days,gcalClient,gcalList,gcalSel,routine}}
@@ -538,6 +539,7 @@ async function initStorage(){
         if(s.exists()){
           const d=s.data();
           tasks=Array.isArray(d.tasks)?d.tasks:[];nextId=d.nextId||tasks.length+1;catHues=d.catHues||{};trash=Array.isArray(d.trash)?d.trash:[];days=d.days&&typeof d.days==="object"?d.days:{};gcalClient=d.gcalClient||"";gcalList=Array.isArray(d.gcalList)?d.gcalList:[];gcalSel=Array.isArray(d.gcalSel)?d.gcalSel:[];routine=Array.isArray(d.routine)?d.routine:[];
+          if(migPri(tasks)|migPri(trash))setTimeout(save,300);
           try{localStorage.setItem(KEY,JSON.stringify(snap()))}catch(e){}
           dbDoc={set:x=>F.setDoc(ref,x)};setSync("saved");render();
         }else if(first){
@@ -551,17 +553,19 @@ async function initStorage(){
 }
 const $=id=>document.getElementById(id);
 const nums=[0,1,2,3,4,5,6,7];
-const PH=[0,8,18,30,48,75,110,150];
-const PS=[52,50,46,52,68,68,68,68];
-const PRI=["Extremely Time Sensitive","Time Sensitive","Small, Significant Tasks","Things that are important to me","Small, Insignificant Tasks","Things that are mildly important to me","Things that I'd like to happen","Things that should happen sometime"];
+// Priority used to be 0-7 (0 = most urgent). Tasks without pv:2 are on the old scale and are converted once.
+function migPri(list){const PMAP=[1,1,2,3,4,5,5,5];let ch=false;(list||[]).forEach(t=>{const x=t&&t.t&&typeof t.t==="object"?t.t:t;if(x&&typeof x==="object"&&x.pv!==2&&"priority" in x){x.priority=PMAP[Math.max(0,Math.min(7,+x.priority||0))];x.pv=2;ch=true}});return ch}
+const PH=[0,0,22,42,205,140],PD=[0,38,26,14,0,0],pnums=[1,2,3,4,5];
+const PS=[0,50,60,62,22,52];
+const PRI=["","Urgent","Time sensitive","Blocker","Neutral","No pressure"];
 const SP=["Spoon Recharger","Simple, can always do it","Can do it with just a bit of energy","Can do it in the right state of mind","Can do it with the help of coffee","Need to actively plan out time to do it","Difficult to get in the right mind to do it","I really don't wanna"];
 function opts(arr,sel){return arr.map(v=>`<option${v==sel?" selected":""}>${v}</option>`).join("")}
 const SL={"In progress":"WIP","Scheduled":"Sched"},sl=v=>SL[v]||v;
 function sopts(sel){return STATUSES.map(v=>`<option value="${v}"${v==sel?" selected":""}>${sl(v)}</option>`).join("")}
-function lopts(ex,sel){return nums.map(v=>`<option value="${v}"${v==sel?" selected":""}>${v} – ${ex[v]}</option>`).join("")}
-$("ep").innerHTML=lopts(PRI,4);$("es").innerHTML=lopts(SP,3);$("est").innerHTML=sopts("To do");
-$("pri").innerHTML=lopts(PRI,4);$("sp").innerHTML=lopts(SP,3);$("st").innerHTML=sopts("To do");
-$("guide").innerHTML=`<div class="g"><b>Priority</b>${PRI.map((t,i)=>`<div><span class="pill pri${i===0?" dk":""}" style="--h:${PH[i]};--d:${Math.max(0,38-10*i)};--s:${PS[i]}%">${i}</span> ${t}</div>`).join("")}</div><div class="g"><b>Spoons</b>${SP.map((t,i)=>`<div><span class="pill sp${i>=4?" hi":""}" style="--t:${i/7}">${i}</span> ${t}</div>`).join("")}</div>`;
+function lopts(ex,sel,list){return (list||nums).map(v=>`<option value="${v}"${v==sel?" selected":""}>${v} – ${ex[v]}</option>`).join("")}
+$("ep").innerHTML=lopts(PRI,4,pnums);$("es").innerHTML=lopts(SP,3);$("est").innerHTML=sopts("To do");
+$("pri").innerHTML=lopts(PRI,4,pnums);$("sp").innerHTML=lopts(SP,3);$("st").innerHTML=sopts("To do");
+$("guide").innerHTML=`<div class="g"><b>Priority</b>${PRI.map((t,i)=>i?`<div><span class="pill pri${i===1?" dk":""}" style="--h:${PH[i]};--d:${PD[i]};--s:${PS[i]}%">${i}</span> ${t}</div>`:"").join("")}</div><div class="g"><b>Spoons</b>${SP.map((t,i)=>`<div><span class="pill sp${i>=4?" hi":""}" style="--t:${i/7}">${i}</span> ${t}</div>`).join("")}</div>`;
 const STH={"To do":25,"Scheduled":50,"In progress":210,"Waiting":275,"Done":140};
 function catHue(s){if(catHues[s]!=null)return catHues[s];let h=7;for(const c of s)h=(h*31+c.charCodeAt(0))%360;return h}
 function scale(a,b,v){return Math.round(a+(b-a)*v/7)}
@@ -573,7 +577,7 @@ function fromLocalInput(v){if(!v)return"";const d=new Date(v);return isNaN(d)?""
 function fmtRem(iso){const d=new Date(iso);return isNaN(d)?"":d.toLocaleString([],{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}
 function add(keep){
   const name=$("name").value.trim();if(!name){$("name").focus();return}
-  const nid=nextId;tasks.push({id:nextId++,name,category:$("cat").value.trim()||"General",priority:+$("pri").value,spoons:+$("sp").value,status:$("st").value,due:$("dt").value||"",term:$("tm").value,kind:$("kd").value,remindAt:fromLocalInput($("rm").value)});
+  const nid=nextId;tasks.push({id:nextId++,name,category:$("cat").value.trim()||"General",priority:+$("pri").value,pv:2,spoons:+$("sp").value,status:$("st").value,due:$("dt").value||"",term:$("tm").value,kind:$("kd").value,remindAt:fromLocalInput($("rm").value)});
   if(planAfterAdd){const d=planDay(planAfterAdd);d.ids=d.ids||[];d.ids.push(nid)}
   $("name").value="";$("dt").value="";$("rm").value="";save();render();if(keep)$("name").focus();else $("dAdd").close();
 }
@@ -618,7 +622,7 @@ function rowHTML(t,cls,o){return `<tr class="${t.status==="Done"?"done":""}${t.k
     <td class="c-st" data-l="Status"><select data-f="status" class="c" style="--h:${STH[t.status]}">${sopts(t.status)}</select></td>
     <td class="c-cat" data-l="Cat."><input class="pill catin" data-f="category" list="cats" value="${esc(t.category)}" style="--h:${catHue(t.category)};width:${Math.max(6,t.category.length+5)}ch"></td>
     <td class="c-term" data-l="Term"><select data-f="term" class="c" style="--h:${(t.term||"short")==="long"?335:175}"><option value="short"${(t.term||"short")==="short"?" selected":""}>Tactical</option><option value="long"${t.term==="long"?" selected":""}>Strategic</option></select></td>
-    <td class="c-pri" data-l="Prio."><select data-f="priority" class="c pri${t.priority===0?" dk":""}" title="${esc(PRI[t.priority])}" style="--h:${PH[t.priority]};--d:${Math.max(0,38-10*t.priority)};--s:${PS[t.priority]}%">${opts(nums,t.priority)}</select><div class="ex">${esc(PRI[t.priority])}</div></td>
+    <td class="c-pri" data-l="Prio."><select data-f="priority" class="c pri${t.priority===1?" dk":""}" title="${esc(PRI[t.priority])}" style="--h:${PH[t.priority]};--d:${PD[t.priority]};--s:${PS[t.priority]}%">${opts(pnums,t.priority)}</select><div class="ex">${esc(PRI[t.priority])}</div></td>
     <td class="c-sp" data-l="Spoons"><select data-f="spoons" class="c sp${t.spoons>=4?" hi":""}" title="${esc(SP[t.spoons])}" style="--t:${t.spoons/7}">${opts(nums,t.spoons)}</select><div class="ex">${esc(SP[t.spoons])}</div></td>
     <td class="c-kind" data-l="Type"><select data-f="kind" class="c kd ${{business:"kb",should:"ks",pleasure:"kp"}[kn(t)]}">${["business","should","pleasure"].map(v=>`<option value="${v}"${kn(t)===v?" selected":""}>${KL[v]}</option>`).join("")}</select></td>
     <td class="c-due" data-l="Due"><input type="date" data-f="due" class="dt${dcls(t)}" value="${t.due||""}"></td>
@@ -655,7 +659,7 @@ function render(skip){
   $("fdv").hidden=fd!=="date";
   const dateOk=t=>!fd||(fd==="overdue"?!!t.due&&t.due<today&&t.status!=="Done":fd==="today"?t.due===today:fd==="tomorrow"?t.due===inDays(1):fd==="week"?!!t.due&&t.due>=today&&t.due<=inDays(7):fd==="none"?!t.due:fd==="date"?(!$("fdv").value||t.due===$("fdv").value):true);
   let list=tasks.filter(t=>(!fc||t.category===fc)&&(!fs.length||fs.includes(t.status))&&dateOk(t)&&(!ft||(t.term||"short")===ft)&&(!fk||kn(t)===fk)&&pinOk(t));
-  const DL={priority:["0 → 7","7 → 0"],spoons:["0 → 7","7 → 0"],status:["To do first","Done first"],due:["Soonest first","Latest first"],term:["Tactical first","Strategic first"]}[sb]||["Default","Reversed"];
+  const DL={priority:["1 → 5","5 → 1"],spoons:["0 → 7","7 → 0"],status:["To do first","Done first"],due:["Soonest first","Latest first"],term:["Tactical first","Strategic first"]}[sb]||["Default","Reversed"];
   $("sd").options[0].text=DL[0];$("sd").options[1].text=DL[1];$("sd").disabled=!sb;
   if(sb==="due"){list=[...list].sort((a,b)=>{if(!a.due!==!b.due)return a.due?-1:1;return ((a.due||"").localeCompare(b.due||"")||a.id-b.id)*(-dir)})}
   else if(sb){
@@ -715,7 +719,7 @@ function openDet(id){if(!tasks.some(x=>x.id===id))return;detId=id;renderDet();$(
 function renderDet(){
   const t=tasks.find(x=>x.id===detId);if(!t){if($("dDet").open)$("dDet").close();return}
   $("detTitle").textContent=t.name;
-  const bits=[KL[kn(t)],t.category,(t.term==="long"?"Strategic":"Tactical"),"Priority "+t.priority,t.spoons+" spoon"+(t.spoons===1?"":"s"),sl(t.status)];
+  const bits=[KL[kn(t)],t.category,(t.term==="long"?"Strategic":"Tactical"),"Priority "+t.priority+" ("+(PRI[t.priority]||"")+")",t.spoons+" spoon"+(t.spoons===1?"":"s"),sl(t.status)];
   if(t.due)bits.push("Due "+t.due);if(t.remindAt)bits.push("\u{1F514} "+fmtRem(t.remindAt));
   $("detInfo").textContent=bits.join(" \u00B7 ");
   const subs=t.subs||[],d=subs.filter(x=>x.d).length;
@@ -803,7 +807,7 @@ function importRows(rows){
   body.forEach(r=>{
     const o={};map.forEach((k,i)=>{if(k&&o[k]==null)o[k]=(r[i]||"").trim()});
     if(!o.name){skip++;return}
-    tasks.push({id:nextId++,name:o.name,category:o.category||"General",priority:num(o.priority,4),spoons:num(o.spoons,3),status:stat(o.status),kind:/must|bus|work/i.test(o.kind||"")?"business":/should/i.test(o.kind||"")?"should":"pleasure",remindAt:rem(o.remind),due:date(o.due),term:/long|strateg/i.test(o.term||"")?"long":"short"});n++;
+    tasks.push({id:nextId++,name:o.name,category:o.category||"General",priority:Math.min(5,Math.max(1,parseInt(o.priority,10)||4)),pv:2,spoons:num(o.spoons,3),status:stat(o.status),kind:/must|bus|work/i.test(o.kind||"")?"business":/should/i.test(o.kind||"")?"should":"pleasure",remindAt:rem(o.remind),due:date(o.due),term:/long|strateg/i.test(o.term||"")?"long":"short"});n++;
   });
   return {n,skip};
 }
