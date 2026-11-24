@@ -183,6 +183,10 @@ tr.ut{background:color-mix(in srgb,hsl(35 25% 50%) 6%,transparent)}
 .hi .hn{flex:1;min-width:0;overflow-wrap:anywhere;cursor:pointer}
 .hi .x{padding:0 6px;line-height:1.2;margin-left:auto}
 button.pin{font-size:14px;opacity:.55}
+.pmenu{position:fixed;z-index:9000;background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.28);padding:4px;max-height:min(70vh,420px);overflow-y:auto;width:min(340px,calc(100vw - 16px))}
+.pmenu button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;background:none;padding:7px 8px;border-radius:8px;font-size:14px;color:var(--tx)}
+.pmenu button:hover,.pmenu button.cur{background:color-mix(in srgb,var(--ac) 14%,var(--card))}
+.pmenu .pill{min-width:26px;text-align:center;flex:none}
 .cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 #cHead div{font-size:11px;font-weight:700;color:var(--mu);text-align:center;padding:2px 0}
 .cd{min-height:96px;border:1px solid var(--bd);border-radius:10px;padding:4px;background:var(--card);overflow:hidden;cursor:pointer;min-width:0}
@@ -262,7 +266,7 @@ body.dragging{cursor:grabbing;user-select:none;-webkit-user-select:none}
 <body>
 <div class="wrap">
 <h1>🥄 Spoon Tasks</h1>
-<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v54</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
+<p class="sub" style="font-size:12px;margin:0 0 10px"><span id="sync"></span><span style="opacity:.55"> · v55</span> <a href="#" id="signout" hidden style="color:var(--ac)">Sign out</a></p>
 <div class="card" id="auth" hidden>
 <b>Sign in to sync across devices</b>
 <div style="margin-top:8px"><button class="p" id="gg">Continue with Google</button> <span class="sub" style="margin:0 0 0 6px">or use email:</span></div>
@@ -1075,6 +1079,30 @@ $("cDay").onclick=e=>{
 function calGo(n){const f=new Date(calMonth+"T00:00:00");f.setMonth(f.getMonth()+n);calMonth=ymd(f).slice(0,7)+"-01";renderCal()}
 $("cPrev").onclick=()=>calGo(-1);$("cNext").onclick=()=>calGo(1);
 $("cToday").onclick=()=>{const t=ymd(new Date());calMonth=t.slice(0,7)+"-01";calSel=t;pDay=t;renderCal()};
+
+// ---- Click a priority / spoons box: pick from a list that includes the descriptions ----
+let pmenu=null;
+function closeMenu(){if(pmenu){pmenu.remove();pmenu=null}}
+function openMenu(sel){
+  closeMenu();
+  const f=sel.dataset.f,cur=+sel.value;
+  const items=f==="priority"?pnums.map(i=>[i,`<span class="pill pri${i===1?" dk":""}" style="--h:${PH[i]};--d:${PD[i]};--s:${PS[i]}%">${i}</span>`,PRI[i]]):nums.map(i=>[i,`<span class="pill sp${i>=4?" hi":""}" style="--t:${i/7}">${i}</span>`,SP[i]]);
+  const m=document.createElement("div");m.className="pmenu";
+  m.innerHTML=items.map(([i,pill,txt])=>`<button type="button" data-v="${i}"${i===cur?' class="cur"':""}>${pill}<span>${esc(txt)}</span></button>`).join("");
+  document.body.appendChild(m);pmenu=m;
+  const r=sel.getBoundingClientRect(),h=m.offsetHeight,w=m.offsetWidth;
+  let top=r.bottom+4;if(top+h>innerHeight-8)top=Math.max(8,r.top-h-4);
+  let left=Math.min(Math.max(8,r.left),innerWidth-w-8);
+  m.style.top=top+"px";m.style.left=left+"px";
+  m.onclick=e=>{const b=e.target.closest("[data-v]");if(!b)return;sel.value=b.dataset.v;closeMenu();sel.dispatchEvent(new Event("change",{bubbles:true}))};
+}
+document.addEventListener("mousedown",e=>{
+  const sel=e.target.closest&&e.target.closest("select[data-f=priority],select[data-f=spoons]");
+  if(sel){e.preventDefault();openMenu(sel);return}
+  if(pmenu&&!e.target.closest(".pmenu"))closeMenu();
+},true);
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMenu()});
+window.addEventListener("scroll",closeMenu,true);window.addEventListener("resize",closeMenu);
 
 // ---- Drag and drop (pointer based, works with touch via the ⠿ handle) ----
 let drag=null;
